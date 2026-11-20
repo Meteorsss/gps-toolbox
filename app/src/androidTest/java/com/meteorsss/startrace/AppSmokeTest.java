@@ -60,8 +60,9 @@ public class AppSmokeTest {
         a.goPage(3);
         a.navigate("compass");
       });
+      awaitActivity(scenario,a->a.hasWindowFocus(),"compass window focus");
       shell("input keyevent 4");
-      SystemClock.sleep(300);
+      awaitActivity(scenario,a->a.mode.isEmpty(),"predictive back completes");
       scenario.onActivity(a -> {
         assertEquals("", a.mode);
         assertTrue(a.visibleText().contains("随手可用"));
@@ -265,11 +266,10 @@ public class AppSmokeTest {
         a.setCoordinateSystem(true);
         assertTrue(a.visibleText().contains("39.9133455"));
         assertEquals(39.911954, a.e.location.getLatitude(), 0);
-        a.copyHere();
-        android.content.ClipboardManager cb =
-            a.getSystemService(android.content.ClipboardManager.class);
-        assertTrue(cb.getPrimaryClip().getItemAt(0).getText().toString().contains("GCJ-02"));
       });
+      awaitActivity(scenario,a->a.hasWindowFocus(),"clipboard requires foreground window focus");
+      scenario.onActivity(a->{a.e.location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());a.copyHere();});
+      awaitActivity(scenario,a->{android.content.ClipboardManager cb=a.getSystemService(android.content.ClipboardManager.class);return cb.hasPrimaryClip()&&cb.getPrimaryClip()!=null&&cb.getPrimaryClip().getItemAt(0).getText().toString().contains("GCJ-02");},"GCJ-02 clipboard contents");
       screenshot("gcj02-dashboard");
       scenario.recreate();
       scenario.onActivity(a -> {
@@ -306,64 +306,28 @@ public class AppSmokeTest {
     }
   }
 
-  @Test
-  public void editPlacePreservesCoordinatesAndPersists() throws Exception {
-    final long[] id = {-1};
-    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
-      scenario.onActivity(a -> {
-        id[0] = a.app.store.savePlace("旧名称", "旧备注", 31.23, 121.47);
-        Store.Place p = a.app.store.places().stream().filter(x -> x.id == id[0]).findFirst().get();
-        long created = p.time;
-        a.navigate("places");
-        android.app.AlertDialog d = a.editPlaceDialog(p);
-        android.widget.EditText name = field(d.getWindow().getDecorView(), "地点名称"),
-            note = field(d.getWindow().getDecorView(), "地点备注");
-        assertNotNull(name);
-        assertNotNull(note);
-        name.setText("未保存");
-        d.getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();
-        assertEquals(
-            "旧名称", a.app.store.places().stream().filter(x -> x.id == id[0]).findFirst().get().name);
-        d = a.editPlaceDialog(p);
-        name = field(d.getWindow().getDecorView(), "地点名称");
-        note = field(d.getWindow().getDecorView(), "地点备注");
-        name.setText("   ");
-        d.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
-        assertTrue(d.isShowing());
-        name.setText(" 停车点 ");
-        note.setText("地下二层\n靠近电梯");
-        d.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
-        assertFalse(d.isShowing());
-        Store.Place saved =
-            a.app.store.places().stream().filter(x -> x.id == id[0]).findFirst().get();
-        assertEquals("停车点", saved.name);
-        assertEquals("地下二层\n靠近电梯", saved.note);
-        assertEquals(p.lat, saved.lat, 0);
-        assertEquals(p.lon, saved.lon, 0);
-        assertEquals(created, saved.time);
-        try (Store reopened = new Store(a)) {
-          assertEquals(
-              "停车点", reopened.places().stream().filter(x -> x.id == id[0]).findFirst().get().name);
-        }
-        assertTrue(a.visibleText().contains("停车点"));
-      });
-      screenshot("edited-place");
-      scenario.recreate();
-      scenario.onActivity(a -> {
-        Store.Place saved =
-            a.app.store.places().stream().filter(x -> x.id == id[0]).findFirst().get();
-        a.app.store.updatePlace(saved.id, saved.name, "");
-        assertEquals(
-            "", a.app.store.places().stream().filter(x -> x.id == id[0]).findFirst().get().note);
-        a.app.store.deletePlace(id[0]);
-      });
-    } finally {
-      if (id[0] > 0)
-        ((App)
-                InstrumentationRegistry.getInstrumentation()
-                    .getTargetContext()
-                    .getApplicationContext())
-            .store.deletePlace(id[0]);
-    }
+  private void awaitActivity(ActivityScenario<MainActivity> scenario,java.util.function.Predicate<MainActivity> check,String message){
+    long deadline=SystemClock.elapsedRealtime()+10000;boolean[] ready={false};
+    while(SystemClock.elapsedRealtime()<deadline){scenario.onActivity(a->ready[0]=check.test(a));if(ready[0])return;SystemClock.sleep(50);}
+    fail("Timed out: "+message);
+  }
+  @Test public void editPlacePreservesCoordinatesAndPersists()throws Exception{
+    final long[] id={-1},created={0};final android.app.AlertDialog[] dialog={null};final Store.Place[] original={null};
+    try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+      scenario.onActivity(a->{id[0]=a.app.store.savePlace("旧名称","旧备注",31.23,121.47);original[0]=a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get();created[0]=original[0].time;a.navigate("places");dialog[0]=a.editPlaceDialog(original[0]);});
+      InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+      awaitActivity(scenario,a->dialog[0].getWindow().getDecorView().hasWindowFocus(),"edit dialog displayed");
+      scenario.onActivity(a->{field(dialog[0].getWindow().getDecorView(),"地点名称").setText("未保存");dialog[0].getButton(android.app.AlertDialog.BUTTON_NEGATIVE).performClick();});
+      awaitActivity(scenario,a->!dialog[0].isShowing(),"cancel dialog closes");
+      scenario.onActivity(a->{assertEquals("旧名称",a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get().name);dialog[0]=a.editPlaceDialog(original[0]);});
+      InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+      awaitActivity(scenario,a->dialog[0].getWindow().getDecorView().hasWindowFocus(),"second edit dialog displayed");
+      scenario.onActivity(a->{field(dialog[0].getWindow().getDecorView(),"地点名称").setText("   ");dialog[0].getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();});
+      InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+      scenario.onActivity(a->{assertTrue(dialog[0].isShowing());assertNotNull(field(dialog[0].getWindow().getDecorView(),"地点名称").getError());field(dialog[0].getWindow().getDecorView(),"地点名称").setText(" 停车点 ");field(dialog[0].getWindow().getDecorView(),"地点备注").setText("地下二层\n靠近电梯");dialog[0].getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();});
+      awaitActivity(scenario,a->!dialog[0].isShowing(),"save dialog closes");
+      scenario.onActivity(a->{Store.Place saved=a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get();assertEquals("停车点",saved.name);assertEquals("地下二层\n靠近电梯",saved.note);assertEquals(original[0].lat,saved.lat,0);assertEquals(original[0].lon,saved.lon,0);assertEquals(created[0],saved.time);try(Store reopened=new Store(a)){assertEquals("停车点",reopened.places().stream().filter(x->x.id==id[0]).findFirst().get().name);}assertTrue(a.visibleText().contains("停车点"));});
+      screenshot("edited-place");scenario.recreate();scenario.onActivity(a->{Store.Place saved=a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get();a.app.store.updatePlace(saved.id,saved.name,"");assertEquals("",a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get().note);a.app.store.deletePlace(id[0]);});
+    }finally{if(dialog[0]!=null)InstrumentationRegistry.getInstrumentation().runOnMainSync(()->dialog[0].dismiss());if(id[0]>0)((App)InstrumentationRegistry.getInstrumentation().getTargetContext().getApplicationContext()).store.deletePlace(id[0]);}
   }
 }
