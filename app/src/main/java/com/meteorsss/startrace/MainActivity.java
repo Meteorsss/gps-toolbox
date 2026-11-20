@@ -528,6 +528,9 @@ public final class MainActivity extends Activity {
     return dialog;
   }
 
+  public void openMap(long trackId){startActivity(new Intent(this,MapActivity.class).putExtra("track_id",trackId));}
+  public void mapPrivacy(){new AlertDialog.Builder(this).setTitle("地图联网与隐私").setMessage(MapPolicy.DISCLOSURE).setPositiveButton("允许在线底图",(d,w)->{MapPolicy.allow(this,true);toast("已允许，可打开地图查看");}).setNeutralButton("撤回联网同意",(d,w)->{MapPolicy.allow(this,false);toast("已撤回。下次打开地图可选择仅本地轨迹。");}).setNegativeButton("取消",null).show();}
+
   public void thirdPartyNotices() {
     try (InputStream in = getAssets().open("third-party/eviltransform-LICENSE.txt")) {
       String license = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
