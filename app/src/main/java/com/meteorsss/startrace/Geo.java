@@ -27,8 +27,17 @@ public final class Geo {
         String cleaned=s.replaceAll("[NSEW北南东西]", "").trim();
         if(!cleaned.matches("[+\\-0-9.°º′'″\"\\s:]+")) throw new IllegalArgumentException("坐标格式无效");
         Matcher m=Pattern.compile("[+-]?\\d+(?:\\.\\d+)?").matcher(cleaned);
-        double[] v=new double[3]; int n=0;
-        while(m.find()){ if(n==3)throw new IllegalArgumentException("坐标格式无效"); v[n++]=Double.parseDouble(m.group()); }
+        Matcher h=Pattern.compile("[NSEW北南东西]").matcher(s);int hc=0;while(h.find())hc++;
+        if(hc>1)throw new IllegalArgumentException("仅允许一个方向标记");
+        if(s.startsWith("-")&&s.matches(".*[NE北东].*"))throw new IllegalArgumentException("负号与方向标记冲突");
+        double[] v=new double[3]; int n=0,lastEnd=0;
+        while(m.find()){
+            String gap=cleaned.substring(lastEnd,m.start());
+            if(n==3||(n==0&&!gap.trim().isEmpty())||(n>0&&!gap.matches("[\s°º′'″\":]+")))throw new IllegalArgumentException("坐标格式无效");
+            v[n++]=Double.parseDouble(m.group());lastEnd=m.end();
+        }
+        if(!cleaned.substring(lastEnd).matches("[\s°º′'″\"]*"))throw new IllegalArgumentException("坐标格式无效");
+        if(n>1&&Math.abs(v[0])!=Math.floor(Math.abs(v[0])))throw new IllegalArgumentException("度分秒的度必须是整数");
         if(n==0)throw new IllegalArgumentException("请输入坐标");
         if(n>1&&(v[1]<0||v[1]>=60))throw new IllegalArgumentException("分应在 0 到 60 之间");
         if(n>2&&(v[2]<0||v[2]>=60))throw new IllegalArgumentException("秒应在 0 到 60 之间");

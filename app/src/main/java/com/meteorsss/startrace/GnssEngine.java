@@ -26,7 +26,7 @@ public final class GnssEngine implements LocationListener,SensorEventListener {
     public boolean precise(){return app.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
     public boolean gpsEnabled(){try{return manager.isProviderEnabled(LocationManager.GPS_PROVIDER);}catch(Exception e){return false;}}
     public boolean enabled(){return manager.isLocationEnabled();}
-    public boolean fresh(){return location!=null&&SystemClock.elapsedRealtime()-location.getElapsedRealtimeNanos()/1000000L<15000;}
+    public boolean fresh(){return precise()&&gpsEnabled()&&location!=null&&SystemClock.elapsedRealtime()-location.getElapsedRealtimeNanos()/1000000L>=0&&SystemClock.elapsedRealtime()-location.getElapsedRealtimeNanos()/1000000L<15000;}
     public long age(){return location==null?Long.MAX_VALUE:Math.max(0,SystemClock.elapsedRealtime()-location.getElapsedRealtimeNanos()/1000000L);}
     public void observe(Observer o){observers.add(o);}
     public void unobserve(Observer o){observers.remove(o);}

@@ -13,5 +13,8 @@ public class GeoTest {
     @Test(expected=IllegalArgumentException.class) public void rejectsGarbage(){Geo.parse("abc 31",true);}
     @Test(expected=IllegalArgumentException.class) public void rejectsOutOfRange(){Geo.parse("181",false);}
     @Test public void dmsCarriesSeconds(){assertEquals("32° 00′ 00.00″ N",Geo.dms(31.99999999,true));}
+    @Test(expected=IllegalArgumentException.class) public void rejectsMalformedDecimal(){Geo.parse("31..5",true);}
+    @Test(expected=IllegalArgumentException.class) public void rejectsConflictingSign(){Geo.parse("-31 N",true);}
+    @Test(expected=IllegalArgumentException.class) public void rejectsMultipleHemisphereMarkers(){Geo.parse("31 NS",true);}
     @Test public void durationAndNormalization(){assertEquals("01:01:01",Geo.duration(3661000));assertEquals(350,Geo.normalize(-10),.001);}
 }
