@@ -29,7 +29,8 @@ public final class Geo {
         Matcher m=Pattern.compile("[+-]?\\d+(?:\\.\\d+)?").matcher(cleaned);
         Matcher h=Pattern.compile("[NSEW北南东西]").matcher(s);int hc=0;while(h.find())hc++;
         if(hc>1)throw new IllegalArgumentException("仅允许一个方向标记");
-        if(s.startsWith("-")&&s.matches(".*[NE北东].*"))throw new IllegalArgumentException("负号与方向标记冲突");
+        if(hc==1&&!s.matches("^(?:[NSEW北南东西].*|.*[NSEW北南东西])$"))throw new IllegalArgumentException("方向标记只能位于开头或末尾");
+        if(cleaned.startsWith("-")&&s.matches(".*[NE北东].*"))throw new IllegalArgumentException("负号与方向标记冲突");
         double[] v=new double[3]; int n=0,lastEnd=0;
         while(m.find()){
             String gap=cleaned.substring(lastEnd,m.start());

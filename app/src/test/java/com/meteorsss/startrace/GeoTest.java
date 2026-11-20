@@ -16,5 +16,8 @@ public class GeoTest {
     @Test(expected=IllegalArgumentException.class) public void rejectsMalformedDecimal(){Geo.parse("31..5",true);}
     @Test(expected=IllegalArgumentException.class) public void rejectsConflictingSign(){Geo.parse("-31 N",true);}
     @Test(expected=IllegalArgumentException.class) public void rejectsMultipleHemisphereMarkers(){Geo.parse("31 NS",true);}
+    @Test(expected=IllegalArgumentException.class) public void rejectsEmbeddedHemisphere(){Geo.parse("3N1",true);}
+    @Test(expected=IllegalArgumentException.class) public void rejectsPrefixSignConflict(){Geo.parse("N -31",true);}
+    @Test public void parsesWhitespaceSeparators(){assertEquals(31.5,Geo.parse("31\t30\t0 N",true),.000001);}
     @Test public void durationAndNormalization(){assertEquals("01:01:01",Geo.duration(3661000));assertEquals(350,Geo.normalize(-10),.001);}
 }
