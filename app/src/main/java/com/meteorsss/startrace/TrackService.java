@@ -18,8 +18,11 @@ public final class TrackService extends Service {
   private int segment;
   private TrackPoint previous, anchor;
   private boolean ending;
-  private final TrackAnalytics analytics=new TrackAnalytics();
-  public TrackAnalytics.Result insights(){return analytics.finish(distance,duration());}
+  private final TrackAnalytics analytics = new TrackAnalytics();
+
+  public TrackAnalytics.Result insights() {
+    return analytics.finish(distance, duration());
+  }
 
   public long duration() {
     return accumulated + (!paused && resumed > 0 ? SystemClock.elapsedRealtime() - resumed : 0);
@@ -102,10 +105,14 @@ public final class TrackService extends Service {
             elapsed,
             segment,
             false,
-            location.hasVerticalAccuracy()?location.getVerticalAccuracyMeters():Double.NaN,
-            Build.VERSION.SDK_INT>=34&&location.hasMslAltitude()?location.getMslAltitudeMeters():Double.NaN,
-            Build.VERSION.SDK_INT>=34&&location.hasMslAltitudeAccuracy()?location.getMslAltitudeAccuracyMeters():Double.NaN,
-            location.hasSpeedAccuracy()?location.getSpeedAccuracyMetersPerSecond():Double.NaN);
+            location.hasVerticalAccuracy() ? location.getVerticalAccuracyMeters() : Double.NaN,
+            Build.VERSION.SDK_INT >= 34 && location.hasMslAltitude()
+                ? location.getMslAltitudeMeters()
+                : Double.NaN,
+            Build.VERSION.SDK_INT >= 34 && location.hasMslAltitudeAccuracy()
+                ? location.getMslAltitudeAccuracyMeters()
+                : Double.NaN,
+            location.hasSpeedAccuracy() ? location.getSpeedAccuracyMetersPerSecond() : Double.NaN);
     boolean good =
         !location.isMock()
             && TrackFilter.usable(candidate, SystemClock.elapsedRealtime())
@@ -125,7 +132,11 @@ public final class TrackService extends Service {
             candidate.time,
             candidate.elapsed,
             segment,
-            good,candidate.verticalAccuracy,candidate.mslAltitude,candidate.mslAccuracy,candidate.speedAccuracy);
+            good,
+            candidate.verticalAccuracy,
+            candidate.mslAltitude,
+            candidate.mslAccuracy,
+            candidate.speedAccuracy);
     try {
       app.store.add(trackId, p, location.isMock());
       analytics.add(p);

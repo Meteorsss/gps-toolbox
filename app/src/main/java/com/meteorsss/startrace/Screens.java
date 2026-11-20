@@ -100,7 +100,7 @@ public final class Screens {
       b.addView(u.button("启用精确定位", true, a::askLocation));
       u.gap(b, 14);
     }
-    button(a,b,"打开地图 · 当前位置",()->a.openMap(-1));
+    button(a, b, "打开地图 · 当前位置", () -> a.openMap(-1));
     LinearLayout hero = u.panel();
     hero.addView(u.text("当前速度 · LIVE SPEED", 12, u.accent));
     u.gap(hero, 12);
@@ -361,8 +361,10 @@ public final class Screens {
       live.addView(d);
       u.gap(live, 8);
       u.note(live, "缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");
-      button(a,live,"在地图上看实时轨迹",()->a.openMap(t.trackId));
-      TrackStatsPanel liveStats=new TrackStatsPanel(a,u,t.trackId);live.addView(liveStats);a.watch(liveStats::refresh);
+      button(a, live, "在地图上看实时轨迹", () -> a.openMap(t.trackId));
+      TrackStatsPanel liveStats = new TrackStatsPanel(a, u, t.trackId);
+      live.addView(liveStats);
+      a.watch(liveStats::refresh);
       chart(a, live, "track", t.trackId, null, 230);
       u.gap(live, 8);
       u.pair(
@@ -456,8 +458,10 @@ public final class Screens {
                 + " 原始点",
             13,
             u.muted));
-    button(a,p,"在地图上查看整段轨迹",()->a.openMap(t.id));
-    TrackStatsPanel stats=new TrackStatsPanel(a,u,t.id);p.addView(stats);a.watch(stats::refresh);
+    button(a, p, "在地图上查看整段轨迹", () -> a.openMap(t.id));
+    TrackStatsPanel stats = new TrackStatsPanel(a, u, t.id);
+    p.addView(stats);
+    a.watch(stats::refresh);
     chart(a, p, "track", t.id, null, 320);
     u.note(p, "橙点为起点，青绿点为终点。轨迹是相对示意图，不含道路底图；长距离和极地区域可能有投影变形。");
     a.body.addView(p);
@@ -522,7 +526,7 @@ public final class Screens {
   private static void tools(MainActivity a) {
     Ui u = a.u;
     u.section(a.body, "SMALL TOOLS, REAL USE", "随手可用");
-    tool(a,"地图与轨迹","OpenFreeMap · 免账号免 Key",()->a.openMap(-1));
+    tool(a, "地图与轨迹", "OpenFreeMap · 免账号免 Key", () -> a.openMap(-1));
     tool(a, "方向指南针", "磁北方向 · 传感器状态", () -> a.navigate("compass"));
     tool(a, "大字速度表", "专注速度 · 可选保持亮屏", () -> a.navigate("speed"));
     tool(a, "坐标格式转换", "十进制度 ↔ 度分秒", a::coordinateTool);
@@ -699,7 +703,7 @@ public final class Screens {
     button(a, a.body, u.light ? "切换到深色主题" : "切换到浅色主题", a::theme);
     button(a, a.body, a.dms() ? "坐标显示：度分秒（点击切换）" : "坐标显示：十进制度（点击切换）", a::toggleDms);
     button(a, a.body, "定位与通知权限", a::appSettings);
-    button(a,a.body,"在线地图隐私 / 撤回同意",a::mapPrivacy);
+    button(a, a.body, "在线地图隐私 / 撤回同意", a::mapPrivacy);
     button(a, a.body, "第三方许可 · 离线坐标转换", a::thirdPartyNotices);
     button(
         a,
@@ -727,7 +731,8 @@ public final class Screens {
             + BuildConfig.VERSION_CODE
             + "\n"
             + "目标 Android 16 · GitHub Actions 云端构建\n"
-            + "本PR加入可选OpenFreeMap在线道路底图；没有离线地图包、路线规划或模拟定位。当前位置支持 WGS84 / GCJ-02 显示切换（离线近似转换）；轨迹与收藏始终使用 WGS84。");
+            + "本PR加入可选OpenFreeMap在线道路底图；没有离线地图包、路线规划或模拟定位。当前位置支持 WGS84 / GCJ-02"
+            + " 显示切换（离线近似转换）；轨迹与收藏始终使用 WGS84。");
     a.body.addView(privacy);
   }
 }
