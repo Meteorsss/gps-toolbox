@@ -1,0 +1,39 @@
+name: Initialize signing (one time)
+on:
+  workflow_dispatch:
+    inputs:
+      repository_public_key:
+        description: GitHub repository Actions secrets public key (not a credential)
+        required: true
+        type: string
+permissions: {}
+jobs:
+  create:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Encrypt a new release key for this repository
+        env:
+          REPOSITORY_PUBLIC_KEY: ${{ inputs.repository_public_key }}
+        run: |
+          python -m pip install --quiet PyNaCl==1.5.0
+          python - <<'PY'
+          import os, json, base64, secrets, subprocess, pathlib
+          from nacl.public import PublicKey, SealedBox
+          from nacl.encoding import Base64Encoder
+          password = secrets.token_urlsafe(40)
+          os.environ['KS_PASSWORD'] = password
+          key = pathlib.Path(os.environ['RUNNER_TEMP']) / 'startrace-release.p12'
+          try:
+              subprocess.run(['keytool','-genkeypair','-keystore',str(key),'-storetype','PKCS12','-alias','startrace','-keyalg','RSA','-keysize','3072','-validity','10000','-dname','CN=StarTrace Personal,OU=GPS Toolbox','-storepass:env','KS_PASSWORD','-keypass:env','KS_PASSWORD'], check=True, capture_output=True)
+              bundle = json.dumps({'keystore':base64.b64encode(key.read_bytes()).decode(),'password':password,'alias':'startrace'}).encode()
+              sealed = SealedBox(PublicKey(os.environ['REPOSITORY_PUBLIC_KEY'], Base64Encoder)).encrypt(bundle)
+              print('SEALED_SIGNING_BUNDLE=' + base64.b64encode(sealed).decode())
+              print('Only repository-public-key encrypted ciphertext is logged; plaintext key is deleted.')
+          finally:
+              key.unlink(missing_ok=True)
+          PY
