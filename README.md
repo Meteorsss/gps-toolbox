@@ -34,7 +34,7 @@ APK 使用固定的个人发布密钥签名，不是每次变化的临时 debug 
 
 ## 隐私与权限
 
-无账号、广告、云同步、分析 SDK，Manifest **没有 INTERNET 和 ACCESS_BACKGROUND_LOCATION 权限**。数据只保存于应用私有目录；系统云备份关闭。导出由系统文件选择器决定保存目标，导出文件包含精确位置，分享前请核对。
+无账号、广告、云同步、分析 SDK，Manifest **没有 INTERNET 和 ACCESS_BACKGROUND_LOCATION 权限**。数据只保存于应用私有目录；系统云备份和设备迁移均排除应用数据。导出由系统文件选择器决定保存目标，导出文件包含精确位置，分享前请核对。
 
 只在用户开启功能时请求精确位置。开始轨迹时请求通知权限，随后使用 `location` 类型前台服务。通知被拒绝时仍可录制，但通知栏操作入口可能不可见。
 
@@ -53,7 +53,7 @@ APK 使用固定的个人发布密钥签名，不是每次变化的临时 debug 
 
 ## 云端构建与签名
 
-- Java 17、AGP 8.13.2、Gradle 8.13、compile/target SDK 36、min SDK 31。
+- Java 17、AGP 8.13.2、Gradle 8.13、compile/target SDK 36、min SDK 33（Android 13）。
 - 主分支推送自动执行单元测试、Android Lint、release APK 编译、签名校验和隐私权限检查。
 - 单独的 Android 16 模拟器任务检查页面渲染、SQLite/GPX/CSV、录制服务开始/暂停/继续/停止；截图与日志保存在构建产物中。
 - `SIGNING_BUNDLE` 为 GitHub Actions Secret，含发布签名材料。密钥在云端生成，首次仅输出 GitHub 公钥加密的密文，经 API 存入 Secret；没有明文下载到开发电脑。

@@ -17,6 +17,9 @@ public class AppSmokeTest {
         try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
             String[] expected={"此刻，在哪里","头顶的卫星","把走过的路留下","随手可用"};
             for(int i=0;i<4;i++){final int page=i;scenario.onActivity(a->{a.goPage(page);assertTrue(a.visibleText().contains(expected[page]));});InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("dark-"+i);}
+            scenario.onActivity(a->{a.goPage(3);a.navigate("compass");});
+            shell("input keyevent 4");SystemClock.sleep(300);
+            scenario.onActivity(a->{assertEquals("",a.mode);assertTrue(a.visibleText().contains("随手可用"));});
             String[] modes={"settings","places","compass","speed","diagnostics"};for(String mode:modes){scenario.onActivity(a->a.navigate(mode));InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot(mode);}
             scenario.onActivity(a->{a.goPage(0);a.theme();assertTrue(a.u.light);});InstrumentationRegistry.getInstrumentation().waitForIdleSync();screenshot("light-home");scenario.recreate();scenario.onActivity(a->{assertTrue(a.u.light);a.theme();});
         }

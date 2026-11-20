@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     public void goPage(int index){page=index;mode="";clearKeepAwake();buildRoot();}
     public void navigate(String value){mode=value;clearKeepAwake();render();scroll.scrollTo(0,0);}
     private void back(){if(!mode.isEmpty()){navigate("");}else if(page!=0){goPage(0);}else{finish();}}
-    @Override public void onBackPressed(){back();}
+
     public void render(){rendering=true;updates.clear();body.removeAllViews();if(!mode.isEmpty()){body.addView(u.button("‹  返回",false,()->navigate(mode.equals("guide")?"places":"")));u.gap(body,16);}Screens.render(this);rendering=false;refresh();}
     public void watch(Runnable update){updates.add(update);update.run();}
     public void bind(TextView target,Supplier<String> value){watch(()->{String s=value.get();if(!target.getText().toString().equals(s))target.setText(s);});}

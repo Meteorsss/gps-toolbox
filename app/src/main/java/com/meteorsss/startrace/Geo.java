@@ -33,10 +33,10 @@ public final class Geo {
         double[] v=new double[3]; int n=0,lastEnd=0;
         while(m.find()){
             String gap=cleaned.substring(lastEnd,m.start());
-            if(n==3||(n==0&&!gap.trim().isEmpty())||(n>0&&!gap.matches("[\s°º′'″\":]+")))throw new IllegalArgumentException("坐标格式无效");
+            if(n==3||(n==0&&!gap.trim().isEmpty())||(n>0&&!gap.matches("[\\s°º′'″\":]+")))throw new IllegalArgumentException("坐标格式无效");
             v[n++]=Double.parseDouble(m.group());lastEnd=m.end();
         }
-        if(!cleaned.substring(lastEnd).matches("[\s°º′'″\"]*"))throw new IllegalArgumentException("坐标格式无效");
+        if(!cleaned.substring(lastEnd).matches("[\\s°º′'″\"]*"))throw new IllegalArgumentException("坐标格式无效");
         if(n>1&&Math.abs(v[0])!=Math.floor(Math.abs(v[0])))throw new IllegalArgumentException("度分秒的度必须是整数");
         if(n==0)throw new IllegalArgumentException("请输入坐标");
         if(n>1&&(v[1]<0||v[1]>=60))throw new IllegalArgumentException("分应在 0 到 60 之间");
