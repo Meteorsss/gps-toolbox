@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-/** Reference vectors from eviltransform/javascript/test.js; bundled BSD-2-Clause license. */
+/** Reference vectors from eviltransform/go/transform_test.go (03ba58d); bundled BSD-2-Clause license. */
 public class Gcj02Test {
   private void check(double a, double b, double x, double y) {
     Gcj02.Coordinate c = Gcj02.fromWgs84(a, b);
@@ -20,7 +20,7 @@ public class Gcj02Test {
 
   @Test
   public void shenzhenFixture() {
-    check(22.543847, 113.912316, 22.540796131694766, 113.9171774808363);
+    check(22.543847, 113.912316, 22.540796131694766, 113.9171764808363);
   }
 
   @Test
