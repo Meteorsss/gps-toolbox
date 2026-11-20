@@ -21,7 +21,7 @@ jobs:
           RUN_ID: ${{ inputs.run_id }}
         run: |
           python - <<'PY'
-          import json,os,subprocess,pathlib
+          import json,os,subprocess,pathlib,zipfile
           run_id=os.environ['RUN_ID']
           if not run_id.isdigit(): raise SystemExit('Invalid run ID')
           repo=os.environ['GH_REPO']
@@ -29,6 +29,11 @@ jobs:
           if run['name']!='Android APK' or run['conclusion']!='success' or run['head_branch']!='main':
               raise SystemExit('Only a successful main-branch Android APK run may be published')
           subprocess.run(['gh','run','download',run_id,'--repo',repo,'--name','StarTrace-installable-apk','--dir','dist'],check=True)
+          subprocess.run(['gh','run','download',run_id,'--repo',repo,'--name','Android16-device-tests-and-screenshots','--dir','device-checks'],check=True)
+          with zipfile.ZipFile('dist/UI-screenshots.zip','w',zipfile.ZIP_DEFLATED) as archive:
+              for image in pathlib.Path('device-checks/screenshots').glob('*.png'):
+                  archive.write(image,image.name)
+          pathlib.Path('dist/device-tests.txt').write_text(pathlib.Path('device-checks/instrumentation.txt').read_text())
           tag=f'v0.1.0-build-{run["run_number"]}'
           notes=f'''星迹 GPS 工具箱 · 真机验证预览版
           
