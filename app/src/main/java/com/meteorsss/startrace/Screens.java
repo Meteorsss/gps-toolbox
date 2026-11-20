@@ -1,4 +1,5 @@
 package com.meteorsss.startrace;
+
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.location.*;
@@ -9,28 +10,555 @@ import android.widget.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Supplier;
+
 public final class Screens {
-    private Screens(){}
-    public static void render(MainActivity a){switch(a.mode){case "settings":settings(a);return;case "places":places(a);return;case "track":track(a);return;case "compass":compass(a,false);return;case "guide":compass(a,true);return;case "speed":speed(a);return;case "diagnostics":diagnostics(a);return;default:break;}switch(a.page){case 1:satellites(a);break;case 2:records(a);break;case 3:tools(a);break;default:home(a);}}
-    private static String f(String format,Object...args){return String.format(Locale.US,format,args);}
-    private static LinearLayout metric(MainActivity a,String name,Supplier<String> value,String caption){Ui u=a.u;LinearLayout p=u.panel();p.addView(u.text(name,12,u.muted));u.gap(p,11);TextView t=u.title("—",24);a.bind(t,value);p.addView(t);u.gap(p,5);p.addView(u.text(caption,10,u.muted));return p;}
-    private static void chart(MainActivity a,LinearLayout panel,String kind,long track,Store.Place place,int height){Charts chart=new Charts(a,kind,track,place);panel.addView(chart,new LinearLayout.LayoutParams(-1,a.u.dp(height)));a.watch(chart::invalidate);}
-    private static void button(MainActivity a,LinearLayout p,String title,Runnable action){p.addView(a.u.button(title,false,action));a.u.gap(p,9);}
-    private static void home(MainActivity a){Ui u=a.u;GnssEngine e=a.e;LinearLayout b=a.body;u.section(b,"YOUR POSITION, CLEARLY","此刻，在哪里");if(!e.precise()){b.addView(u.button("启用精确定位",true,a::askLocation));u.gap(b,14);}LinearLayout hero=u.panel();hero.addView(u.text("HORIZONTAL ACCURACY",10,u.accent));u.gap(hero,12);LinearLayout row=u.row();TextView accuracy=u.title("—",64);a.bind(accuracy,()->e.fresh()&&e.location.hasAccuracy()?f("%.1f",e.location.getAccuracy()):"—");row.addView(accuracy);TextView unit=u.text("  米",17,u.muted);row.addView(unit);hero.addView(row);u.gap(hero,9);u.note(hero,"水平精度估计，不代表保证误差。过期位置不作为实时数据。 ");b.addView(hero);
-        u.pair(b,metric(a,"当前速度",()->e.fresh()&&e.location.hasSpeed()?f("%.1f",e.location.getSpeed()*3.6):"—","km/h · 卫星速度"),metric(a,"GNSS 高度",()->e.fresh()&&e.location.hasAltitude()?f("%.1f",e.location.getAltitude()):"—","m · WGS84 椭球高"));u.gap(b,12);
-        u.pair(b,metric(a,"参与定位 / 收到",()->e.uniqueCount(true)+" / "+e.uniqueCount(false),"卫星去重计数"),metric(a,"本次首次定位",()->e.firstFix>=0?f("%.1f s",e.firstFix/1000.0):"—","从本次定位请求开始"));u.gap(b,12);
-        LinearLayout coords=u.panel();LinearLayout title=u.row();title.addView(u.title("当前位置",16),new LinearLayout.LayoutParams(0,-2,1));title.addView(u.text("WGS84",11,u.accent));coords.addView(title);u.gap(coords,14);TextView coord=u.text("等待定位…",19,u.text);coord.setTypeface(Typeface.MONOSPACE);a.bind(coord,()->{if(!e.fresh())return "等待有效位置…";Location l=e.location;return a.dms()?Geo.dms(l.getLatitude(),true)+"\n"+Geo.dms(l.getLongitude(),false):f("纬度  %.7f°\n经度  %.7f°",l.getLatitude(),l.getLongitude());});coords.addView(coord);u.gap(coords,12);TextView bearing=u.text("",12,u.muted);a.bind(bearing,()->e.fresh()&&e.location.hasBearing()?f("运动方向 %.0f°（真北）",e.location.getBearing()):"运动方向暂无 · 不等于手机朝向");coords.addView(bearing);u.gap(coords,15);u.pair(coords,u.button("保存地点",false,a::saveHere),u.button("复制坐标",false,a::copyHere));coord.setOnLongClickListener(v->{a.copyHere();return true;});b.addView(coords);
-        b.addView(u.button(TrackService.active==null?"开始记录轨迹":"查看正在记录的轨迹",true,a::record));u.gap(b,12);button(a,b,"定位权限与开关",a::askLocation);u.note(b,"纯本地 · 无账号 · 无联网权限\n建议在开阔处等待首次定位；室内可能无法获取卫星位置。");}
-    private static void satellites(MainActivity a){Ui u=a.u;LinearLayout b=a.body;u.section(b,"LOOK UP, KNOW MORE","头顶的卫星");LinearLayout stats=u.panel();TextView counts=u.title("等待卫星",22);a.bind(counts,()->a.e.uniqueCount(true)+" 参与定位  /  "+a.e.uniqueCount(false)+" 收到");stats.addView(counts);u.gap(stats,8);u.note(stats,"按系统 + 卫星编号去重；多频信号不会算作多颗卫星。");chart(a,stats,"sky",-1,null,300);u.note(stats,"实心 = 参与解算 · 空心 = 未参与\n青绿 GPS · 蓝色北斗 · 粉色 Galileo · 橙色 GLONASS");b.addView(stats);LinearLayout signal=u.panel();signal.addView(u.title("信号明细",18));u.gap(signal,7);u.note(signal,"最强 20 条信号 · C/N₀，单位 dB-Hz\n同一颗卫星可能有多条频率记录；频率缺失不推测。");u.gap(signal,15);chart(a,signal,"signal",-1,null,685);b.addView(signal);button(a,b,"查看设备与定位诊断",()->a.navigate("diagnostics"));}
-    private static void records(MainActivity a){Ui u=a.u;LinearLayout b=a.body;u.section(b,"LEAVE A TRACE","把走过的路留下");TrackService t=TrackService.active;if(t!=null){LinearLayout live=u.panel();live.addView(u.text(t.paused?"Ⅱ  已暂停":"●  正在记录",12,u.accent));u.gap(live,12);TextView elapsed=u.title("00:00:00",38);a.bind(elapsed,()->Geo.duration(t.duration()));live.addView(elapsed);u.gap(live,8);TextView d=u.title("0 m",23);a.bind(d,()->Geo.meters(t.distance));live.addView(d);u.gap(live,8);u.note(live,"缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");chart(a,live,"track",t.trackId,null,230);u.gap(live,8);u.pair(live,u.button(t.paused?"继续":"暂停",false,()->a.service(t.paused?"RESUME":"PAUSE")),u.button("结束并保存",true,()->a.service("STOP")));b.addView(live);}else{b.addView(u.button("开始新轨迹",true,a::record));u.gap(b,14);}button(a,b,"收藏地点 →",()->a.navigate("places"));u.gap(b,8);b.addView(u.title("历史轨迹",19));u.gap(b,12);List<Store.Track> list=a.app.store.tracks();if(list.isEmpty()){LinearLayout empty=u.panel();empty.addView(u.title("第一段旅程，等你出发",18));u.gap(empty,8);u.note(empty,"记录默认关闭。只有点击开始后才会持续记录，结束后保存在这台手机上。");b.addView(empty);}for(Store.Track track:list){if(t!=null&&track.id==t.trackId)continue;LinearLayout p=u.panel();p.addView(u.title(track.name,17));u.gap(p,8);p.addView(u.text(Geo.meters(track.distance)+"  ·  "+Geo.duration(track.duration),15,u.accent));u.gap(p,6);p.addView(u.text(date(track.start)+"  ·  "+status(track.status)+"\n"+track.points+" 有效点 / "+track.raw+" 原始点",12,u.muted));p.setOnClickListener(v->a.trackActions(track));p.setFocusable(true);p.setContentDescription(track.name+"，查看或导出轨迹");b.addView(p);}u.note(b,"距离经过抗漂移过滤，是估计值。卸载会删除本地记录，请先导出备份。");}
-    private static String status(String s){switch(s){case "recording":return "记录中";case "paused":return "已暂停";case "finished":return "已完成";default:return "意外中断 · 已保留数据";}}
-    private static String date(long time){return new SimpleDateFormat("yyyy-MM-dd HH:mm",Locale.CHINA).format(new Date(time));}
-    private static void track(MainActivity a){Ui u=a.u;Store.Track t=a.app.store.track(a.selectedTrack);if(t==null){u.note(a.body,"这段轨迹不存在。");return;}u.section(a.body,"TRACK DETAILS",t.name);LinearLayout p=u.panel();p.addView(u.title(Geo.meters(t.distance),34));u.gap(p,9);p.addView(u.text(Geo.duration(t.duration)+"  ·  "+status(t.status),15,u.muted));u.gap(p,8);p.addView(u.text("平均速度 "+(t.duration>0?f("%.1f km/h",t.distance/(t.duration/1000.0)*3.6):"—")+"\n"+t.points+" 有效点 / "+t.raw+" 原始点",13,u.muted));chart(a,p,"track",t.id,null,320);u.note(p,"橙点为起点，青绿点为终点。轨迹是相对示意图，不含道路底图；长距离和极地区域可能有投影变形。");a.body.addView(p);boolean live=TrackService.active!=null&&TrackService.active.trackId==t.id;if(!live){button(a,a.body,"导出 GPX（有效轨迹）",()->a.export(t,false));button(a,a.body,"导出 CSV（全部原始点）",()->a.export(t,true));}else u.note(a.body,"请结束记录后再导出，以获得一致的完整文件。");u.note(a.body,"GPX 保留断点，不插值补线。椭球高写入扩展字段，不冒充标准海拔。CSV 保留被过滤的位置与模拟标记。");}
-    private static void places(MainActivity a){Ui u=a.u;u.section(a.body,"PLACES TO REMEMBER","收藏地点");u.pair(a.body,u.button("保存当前位置",true,a::saveHere),u.button("输入坐标",false,()->a.placeDialog(null,null)));u.gap(a.body,18);List<Store.Place> places=a.app.store.places();if(places.isEmpty())u.note(a.body,"还没有收藏地点。可以保存停车位置、出发点或常去地点。所有坐标均为 WGS84。");for(Store.Place p:places){LinearLayout panel=u.panel();panel.addView(u.title(p.name,19));u.gap(panel,8);panel.addView(u.text(f("%.6f, %.6f",p.lat,p.lon),13,u.muted));if(!p.note.isEmpty()){u.gap(panel,7);panel.addView(u.text(p.note,13,u.muted));}u.gap(panel,8);TextView distance=u.text("",14,u.accent);a.bind(distance,()->a.e.fresh()?"直线距离 "+Geo.meters(Geo.distance(a.e.location.getLatitude(),a.e.location.getLongitude(),p.lat,p.lon)):"点击查看操作");panel.addView(distance);panel.setOnClickListener(v->a.placeActions(p));a.body.addView(panel);}}
-    private static void tools(MainActivity a){Ui u=a.u;u.section(a.body,"SMALL TOOLS, REAL USE","随手可用");tool(a,"方向指南针","磁北方向 · 传感器状态",()->a.navigate("compass"));tool(a,"大字速度表","专注速度 · 可选保持亮屏",()->a.navigate("speed"));tool(a,"坐标格式转换","十进制度 ↔ 度分秒",a::coordinateTool);tool(a,"两点测距","WGS84 · 直线距离与方位",a::distanceTool);tool(a,"收藏地点","保存位置 · 指向目标",()->a.navigate("places"));tool(a,"定位诊断","权限、设备与数据状态",()->a.navigate("diagnostics"));}
-    private static void tool(MainActivity a,String title,String description,Runnable action){LinearLayout p=a.u.panel();p.addView(a.u.title(title+"  ›",19));a.u.gap(p,8);p.addView(a.u.text(description,13,a.u.muted));p.setOnClickListener(v->action.run());p.setMinimumHeight(a.u.dp(92));p.setFocusable(true);p.setContentDescription(title);a.body.addView(p);}
-    private static void compass(MainActivity a,boolean guide){Ui u=a.u;Store.Place target=guide?a.destination:null;if(guide&&target==null){u.note(a.body,"请先选择目标地点。");return;}u.section(a.body,guide?"FIND YOUR WAY BACK":"FOLLOW YOUR BEARING",guide?target.name:"方向指南针");LinearLayout p=u.panel();chart(a,p,"compass",-1,target,330);TextView state=u.text("",13,u.muted);a.bind(state,()->!a.e.hasCompass?"设备没有提供旋转矢量传感器":guide?"方位基准：真北（由磁偏角修正）":"方位基准：磁北 · 请将手机平放");p.addView(state);u.gap(p,8);TextView quality=u.text("",13,u.warning);a.bind(quality,()->a.e.sensorAccuracy<=1?"方向可靠性较低：请远离磁铁、金属或磁吸壳，并缓慢转动手机。":"方向仅供参考，不作为专业测量依据。");p.addView(quality);a.body.addView(p);if(guide){LinearLayout info=u.panel();TextView distance=u.title("等待定位",32);a.bind(distance,()->a.e.fresh()?Geo.meters(Geo.distance(a.e.location.getLatitude(),a.e.location.getLongitude(),target.lat,target.lon)):"等待新鲜位置");info.addView(distance);u.gap(info,10);TextView bearing=u.text("",15,u.accent);a.bind(bearing,()->a.e.fresh()?f("目标真北方位 %.0f°",Geo.bearing(a.e.location.getLatitude(),a.e.location.getLongitude(),target.lat,target.lon)):"需要定位后才能计算目标方向");info.addView(bearing);u.gap(info,10);u.note(info,"这是直线方向指引，不是道路导航。不能判断障碍、地形或可通行路线；接近目标时请结合定位精度判断。");a.body.addView(info);}}
-    private static void speed(MainActivity a){Ui u=a.u;u.section(a.body,"LIVE SPEED","大字速度表");LinearLayout p=u.panel();u.gap(p,32);TextView speed=u.title("—",76);speed.setGravity(Gravity.CENTER);a.bind(speed,()->a.e.fresh()&&a.e.location.hasSpeed()?f("%.1f",a.e.location.getSpeed()*3.6):"—");p.addView(speed);TextView unit=u.text("km/h",22,u.accent);unit.setGravity(Gravity.CENTER);p.addView(unit);u.gap(p,30);TextView other=u.text("",15,u.muted);other.setGravity(Gravity.CENTER);a.bind(other,()->a.e.fresh()&&a.e.location.hasSpeed()?f("%.2f m/s",a.e.location.getSpeed()):"等待有效速度数据");p.addView(other);u.gap(p,24);Switch keep=new Switch(a);keep.setText("保持屏幕常亮");keep.setTextColor(u.text);keep.setMinHeight(u.dp(48));keep.setOnCheckedChangeListener((v,on)->a.keepAwake(on));p.addView(keep);a.body.addView(p);u.note(a.body,"速度来自定位数据，静止或弱信号时可能抖动。请勿在驾驶时操作手机。离开这个页面后会取消常亮。");}
-    private static void diagnostics(MainActivity a){Ui u=a.u;u.section(a.body,"KNOW WHAT IS HAPPENING","定位诊断");LinearLayout p=u.panel();TextView details=u.text("",14,u.text);a.bind(details,()->"设备  "+Build.MANUFACTURER+" "+Build.MODEL+"\nAndroid  "+Build.VERSION.RELEASE+" / API "+Build.VERSION.SDK_INT+"\n精确位置权限  "+(a.e.precise()?"已授予":"未授予")+"\n系统定位  "+(a.e.enabled()?"开启":"关闭")+"\nGPS 提供器  "+(a.e.gpsEnabled()?"开启":"关闭或不可用")+"\n旋转矢量传感器  "+(a.e.hasCompass?"可用":"未提供")+"\n数据年龄  "+(a.e.location==null?"无位置":a.e.age()/1000+" 秒")+"\n当前提供器  "+(a.e.location==null?"—":a.e.location.getProvider())+"\n模拟位置  "+(a.e.location==null?"—":a.e.location.isMock()?"是":"否")+"\n卫星信号记录  "+a.e.currentSatellites().size()+" 条\n频率字段  "+(a.e.currentSatellites().stream().anyMatch(s->s.hasFrequency)?"设备有提供":"当前未提供 / 无信号")+"\n"+a.e.problem);details.setLineSpacing(u.dp(7),1);p.addView(details);a.body.addView(p);button(a,a.body,"请求精确定位",a::askLocation);button(a,a.body,"应用权限设置",a::appSettings);button(a,a.body,"系统定位设置",()->a.openSystem(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)));u.note(a.body,"首次定位耗时不是严格冷启动测试。频率有数据不等于已经验证双频性能。诊断只检查可观察状态，不提供虚假的一键增强。");}
-    private static void settings(MainActivity a){Ui u=a.u;u.section(a.body,"MAKE IT YOURS","设置与关于");button(a,a.body,u.light?"切换到深色主题":"切换到浅色主题",a::theme);button(a,a.body,a.dms()?"坐标显示：度分秒（点击切换）":"坐标显示：十进制度（点击切换）",a::toggleDms);button(a,a.body,"定位与通知权限",a::appSettings);button(a,a.body,"系统电池优化设置",()->a.openSystem(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)));LinearLayout p=u.panel();p.addView(u.title("红米 / 澎湃 OS 使用提示",17));u.gap(p,10);u.note(p,"如需长时间熄屏记录，可在系统应用设置中检查后台电池策略。菜单因系统版本不同而异，必要时允许应用在后台运行。\n\n星迹不会自动更改系统设置，也不承诺永不被系统终止。记录意外中断后，下次打开会保留已落盘的数据并标为中断。");a.body.addView(p);LinearLayout privacy=u.panel();privacy.addView(u.title("你的轨迹，只在你手里",18));u.gap(privacy,10);u.note(privacy,"无账号、广告、分析 SDK 或联网权限。未申请后台始终定位。只有手动开始轨迹后，才使用前台服务继续记录。\n\n导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，CSV 用于保留全部原始点。\n\n星迹 "+BuildConfig.VERSION_NAME+" · build "+BuildConfig.VERSION_CODE+"\n目标 Android 16 · GitHub Actions 云端构建\n此版本没有道路底图、离线地图、模拟定位或坐标系转换。");a.body.addView(privacy);}
+  private Screens() {}
+
+  public static void render(MainActivity a) {
+    switch (a.mode) {
+      case "settings":
+        settings(a);
+        return;
+      case "places":
+        places(a);
+        return;
+      case "track":
+        track(a);
+        return;
+      case "compass":
+        compass(a, false);
+        return;
+      case "guide":
+        compass(a, true);
+        return;
+      case "speed":
+        speed(a);
+        return;
+      case "diagnostics":
+        diagnostics(a);
+        return;
+      default:
+        break;
+    }
+    switch (a.page) {
+      case 1:
+        satellites(a);
+        break;
+      case 2:
+        records(a);
+        break;
+      case 3:
+        tools(a);
+        break;
+      default:
+        home(a);
+    }
+  }
+
+  private static String f(String format, Object... args) {
+    return String.format(Locale.US, format, args);
+  }
+
+  private static LinearLayout metric(
+      MainActivity a, String name, Supplier<String> value, String caption) {
+    Ui u = a.u;
+    LinearLayout p = u.panel();
+    p.addView(u.text(name, 12, u.muted));
+    u.gap(p, 11);
+    TextView t = u.title("—", 24);
+    a.bind(t, value);
+    p.addView(t);
+    u.gap(p, 5);
+    p.addView(u.text(caption, 10, u.muted));
+    return p;
+  }
+
+  private static void chart(
+      MainActivity a, LinearLayout panel, String kind, long track, Store.Place place, int height) {
+    Charts chart = new Charts(a, kind, track, place);
+    panel.addView(chart, new LinearLayout.LayoutParams(-1, a.u.dp(height)));
+    a.watch(chart::invalidate);
+  }
+
+  private static void button(MainActivity a, LinearLayout p, String title, Runnable action) {
+    p.addView(a.u.button(title, false, action));
+    a.u.gap(p, 9);
+  }
+
+  private static void home(MainActivity a) {
+    Ui u = a.u;
+    GnssEngine e = a.e;
+    LinearLayout b = a.body;
+    u.section(b, "YOUR POSITION, CLEARLY", "此刻，在哪里");
+    if (!e.precise()) {
+      b.addView(u.button("启用精确定位", true, a::askLocation));
+      u.gap(b, 14);
+    }
+    LinearLayout hero = u.panel();
+    hero.addView(u.text("HORIZONTAL ACCURACY", 10, u.accent));
+    u.gap(hero, 12);
+    LinearLayout row = u.row();
+    TextView accuracy = u.title("—", 64);
+    a.bind(
+        accuracy,
+        () -> e.fresh() && e.location.hasAccuracy() ? f("%.1f", e.location.getAccuracy()) : "—");
+    row.addView(accuracy);
+    TextView unit = u.text("  米", 17, u.muted);
+    row.addView(unit);
+    hero.addView(row);
+    u.gap(hero, 9);
+    u.note(hero, "水平精度估计，不代表保证误差。过期位置不作为实时数据。 ");
+    b.addView(hero);
+    u.pair(
+        b,
+        metric(
+            a,
+            "当前速度",
+            () -> e.fresh() && e.location.hasSpeed() ? f("%.1f", e.location.getSpeed() * 3.6) : "—",
+            "km/h · 卫星速度"),
+        metric(
+            a,
+            "GNSS 高度",
+            () -> e.fresh() && e.location.hasAltitude() ? f("%.1f", e.location.getAltitude()) : "—",
+            "m · WGS84 椭球高"));
+    u.gap(b, 12);
+    u.pair(
+        b,
+        metric(a, "参与定位 / 收到", () -> e.uniqueCount(true) + " / " + e.uniqueCount(false), "卫星去重计数"),
+        metric(
+            a,
+            "本次首次定位",
+            () -> e.firstFix >= 0 ? f("%.1f s", e.firstFix / 1000.0) : "—",
+            "从本次定位请求开始"));
+    u.gap(b, 12);
+    LinearLayout coords = u.panel();
+    LinearLayout title = u.row();
+    title.addView(u.title("当前位置", 16), new LinearLayout.LayoutParams(0, -2, 1));
+    title.addView(u.text("WGS84", 11, u.accent));
+    coords.addView(title);
+    u.gap(coords, 14);
+    TextView coord = u.text("等待定位…", 19, u.text);
+    coord.setTypeface(Typeface.MONOSPACE);
+    a.bind(
+        coord,
+        () -> {
+          if (!e.fresh()) return "等待有效位置…";
+          Location l = e.location;
+          return a.dms()
+              ? Geo.dms(l.getLatitude(), true) + "\n" + Geo.dms(l.getLongitude(), false)
+              : f("纬度  %.7f°\n经度  %.7f°", l.getLatitude(), l.getLongitude());
+        });
+    coords.addView(coord);
+    u.gap(coords, 12);
+    TextView bearing = u.text("", 12, u.muted);
+    a.bind(
+        bearing,
+        () ->
+            e.fresh() && e.location.hasBearing()
+                ? f("运动方向 %.0f°（真北）", e.location.getBearing())
+                : "运动方向暂无 · 不等于手机朝向");
+    coords.addView(bearing);
+    u.gap(coords, 15);
+    u.pair(coords, u.button("保存地点", false, a::saveHere), u.button("复制坐标", false, a::copyHere));
+    coord.setOnLongClickListener(v -> {
+      a.copyHere();
+      return true;
+    });
+    b.addView(coords);
+    b.addView(u.button(TrackService.active == null ? "开始记录轨迹" : "查看正在记录的轨迹", true, a::record));
+    u.gap(b, 12);
+    button(a, b, "定位权限与开关", a::askLocation);
+    u.note(b, "纯本地 · 无账号 · 无联网权限\n建议在开阔处等待首次定位；室内可能无法获取卫星位置。");
+  }
+
+  private static void satellites(MainActivity a) {
+    Ui u = a.u;
+    LinearLayout b = a.body;
+    u.section(b, "LOOK UP, KNOW MORE", "头顶的卫星");
+    LinearLayout stats = u.panel();
+    TextView counts = u.title("等待卫星", 22);
+    a.bind(counts, () -> a.e.uniqueCount(true) + " 参与定位  /  " + a.e.uniqueCount(false) + " 收到");
+    stats.addView(counts);
+    u.gap(stats, 8);
+    u.note(stats, "按系统 + 卫星编号去重；多频信号不会算作多颗卫星。");
+    chart(a, stats, "sky", -1, null, 300);
+    u.note(stats, "实心 = 参与解算 · 空心 = 未参与\n青绿 GPS · 蓝色北斗 · 粉色 Galileo · 橙色 GLONASS");
+    b.addView(stats);
+    LinearLayout signal = u.panel();
+    signal.addView(u.title("信号明细", 18));
+    u.gap(signal, 7);
+    u.note(signal, "最强 20 条信号 · C/N₀，单位 dB-Hz\n同一颗卫星可能有多条频率记录；频率缺失不推测。");
+    u.gap(signal, 15);
+    chart(a, signal, "signal", -1, null, 685);
+    b.addView(signal);
+    button(a, b, "查看设备与定位诊断", () -> a.navigate("diagnostics"));
+  }
+
+  private static void records(MainActivity a) {
+    Ui u = a.u;
+    LinearLayout b = a.body;
+    u.section(b, "LEAVE A TRACE", "把走过的路留下");
+    TrackService t = TrackService.active;
+    if (t != null) {
+      LinearLayout live = u.panel();
+      live.addView(u.text(t.paused ? "Ⅱ  已暂停" : "●  正在记录", 12, u.accent));
+      u.gap(live, 12);
+      TextView elapsed = u.title("00:00:00", 38);
+      a.bind(elapsed, () -> Geo.duration(t.duration()));
+      live.addView(elapsed);
+      u.gap(live, 8);
+      TextView d = u.title("0 m", 23);
+      a.bind(d, () -> Geo.meters(t.distance));
+      live.addView(d);
+      u.gap(live, 8);
+      u.note(live, "缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");
+      chart(a, live, "track", t.trackId, null, 230);
+      u.gap(live, 8);
+      u.pair(
+          live,
+          u.button(t.paused ? "继续" : "暂停", false, () -> a.service(t.paused ? "RESUME" : "PAUSE")),
+          u.button("结束并保存", true, () -> a.service("STOP")));
+      b.addView(live);
+    } else {
+      b.addView(u.button("开始新轨迹", true, a::record));
+      u.gap(b, 14);
+    }
+    button(a, b, "收藏地点 →", () -> a.navigate("places"));
+    u.gap(b, 8);
+    b.addView(u.title("历史轨迹", 19));
+    u.gap(b, 12);
+    List<Store.Track> list = a.app.store.tracks();
+    if (list.isEmpty()) {
+      LinearLayout empty = u.panel();
+      empty.addView(u.title("第一段旅程，等你出发", 18));
+      u.gap(empty, 8);
+      u.note(empty, "记录默认关闭。只有点击开始后才会持续记录，结束后保存在这台手机上。");
+      b.addView(empty);
+    }
+    for (Store.Track track : list) {
+      if (t != null && track.id == t.trackId) continue;
+      LinearLayout p = u.panel();
+      p.addView(u.title(track.name, 17));
+      u.gap(p, 8);
+      p.addView(
+          u.text(
+              Geo.meters(track.distance) + "  ·  " + Geo.duration(track.duration), 15, u.accent));
+      u.gap(p, 6);
+      p.addView(
+          u.text(
+              date(track.start)
+                  + "  ·  "
+                  + status(track.status)
+                  + "\n"
+                  + track.points
+                  + " 有效点 / "
+                  + track.raw
+                  + " 原始点",
+              12,
+              u.muted));
+      p.setOnClickListener(v -> a.trackActions(track));
+      p.setFocusable(true);
+      p.setContentDescription(track.name + "，查看或导出轨迹");
+      b.addView(p);
+    }
+    u.note(b, "距离经过抗漂移过滤，是估计值。卸载会删除本地记录，请先导出备份。");
+  }
+
+  private static String status(String s) {
+    switch (s) {
+      case "recording":
+        return "记录中";
+      case "paused":
+        return "已暂停";
+      case "finished":
+        return "已完成";
+      default:
+        return "意外中断 · 已保留数据";
+    }
+  }
+
+  private static String date(long time) {
+    return new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(new Date(time));
+  }
+
+  private static void track(MainActivity a) {
+    Ui u = a.u;
+    Store.Track t = a.app.store.track(a.selectedTrack);
+    if (t == null) {
+      u.note(a.body, "这段轨迹不存在。");
+      return;
+    }
+    u.section(a.body, "TRACK DETAILS", t.name);
+    LinearLayout p = u.panel();
+    p.addView(u.title(Geo.meters(t.distance), 34));
+    u.gap(p, 9);
+    p.addView(u.text(Geo.duration(t.duration) + "  ·  " + status(t.status), 15, u.muted));
+    u.gap(p, 8);
+    p.addView(
+        u.text(
+            "平均速度 "
+                + (t.duration > 0 ? f("%.1f km/h", t.distance / (t.duration / 1000.0) * 3.6) : "—")
+                + "\n"
+                + t.points
+                + " 有效点 / "
+                + t.raw
+                + " 原始点",
+            13,
+            u.muted));
+    chart(a, p, "track", t.id, null, 320);
+    u.note(p, "橙点为起点，青绿点为终点。轨迹是相对示意图，不含道路底图；长距离和极地区域可能有投影变形。");
+    a.body.addView(p);
+    boolean live = TrackService.active != null && TrackService.active.trackId == t.id;
+    if (!live) {
+      button(a, a.body, "导出 GPX（有效轨迹）", () -> a.export(t, false));
+      button(a, a.body, "导出 CSV（全部原始点）", () -> a.export(t, true));
+    } else u.note(a.body, "请结束记录后再导出，以获得一致的完整文件。");
+    u.note(a.body, "GPX 保留断点，不插值补线。椭球高写入扩展字段，不冒充标准海拔。CSV 保留被过滤的位置与模拟标记。");
+  }
+
+  private static void places(MainActivity a) {
+    Ui u = a.u;
+    u.section(a.body, "PLACES TO REMEMBER", "收藏地点");
+    u.pair(
+        a.body,
+        u.button("保存当前位置", true, a::saveHere),
+        u.button("输入坐标", false, () -> a.placeDialog(null, null)));
+    u.gap(a.body, 18);
+    List<Store.Place> places = a.app.store.places();
+    if (places.isEmpty()) u.note(a.body, "还没有收藏地点。可以保存停车位置、出发点或常去地点。所有坐标均为 WGS84。");
+    for (Store.Place p : places) {
+      LinearLayout panel = u.panel();
+      panel.addView(u.title(p.name, 19));
+      u.gap(panel, 8);
+      panel.addView(u.text(f("%.6f, %.6f", p.lat, p.lon), 13, u.muted));
+      if (!p.note.isEmpty()) {
+        u.gap(panel, 7);
+        panel.addView(u.text(p.note, 13, u.muted));
+      }
+      u.gap(panel, 8);
+      TextView distance = u.text("", 14, u.accent);
+      a.bind(
+          distance,
+          () ->
+              a.e.fresh()
+                  ? "直线距离 "
+                      + Geo.meters(
+                          Geo.distance(
+                              a.e.location.getLatitude(),
+                              a.e.location.getLongitude(),
+                              p.lat,
+                              p.lon))
+                  : "点击查看操作");
+      panel.addView(distance);
+      panel.setOnClickListener(v -> a.placeActions(p));
+      a.body.addView(panel);
+    }
+  }
+
+  private static void tools(MainActivity a) {
+    Ui u = a.u;
+    u.section(a.body, "SMALL TOOLS, REAL USE", "随手可用");
+    tool(a, "方向指南针", "磁北方向 · 传感器状态", () -> a.navigate("compass"));
+    tool(a, "大字速度表", "专注速度 · 可选保持亮屏", () -> a.navigate("speed"));
+    tool(a, "坐标格式转换", "十进制度 ↔ 度分秒", a::coordinateTool);
+    tool(a, "两点测距", "WGS84 · 直线距离与方位", a::distanceTool);
+    tool(a, "收藏地点", "保存位置 · 指向目标", () -> a.navigate("places"));
+    tool(a, "定位诊断", "权限、设备与数据状态", () -> a.navigate("diagnostics"));
+  }
+
+  private static void tool(MainActivity a, String title, String description, Runnable action) {
+    LinearLayout p = a.u.panel();
+    p.addView(a.u.title(title + "  ›", 19));
+    a.u.gap(p, 8);
+    p.addView(a.u.text(description, 13, a.u.muted));
+    p.setOnClickListener(v -> action.run());
+    p.setMinimumHeight(a.u.dp(92));
+    p.setFocusable(true);
+    p.setContentDescription(title);
+    a.body.addView(p);
+  }
+
+  private static void compass(MainActivity a, boolean guide) {
+    Ui u = a.u;
+    Store.Place target = guide ? a.destination : null;
+    if (guide && target == null) {
+      u.note(a.body, "请先选择目标地点。");
+      return;
+    }
+    u.section(
+        a.body,
+        guide ? "FIND YOUR WAY BACK" : "FOLLOW YOUR BEARING",
+        guide ? target.name : "方向指南针");
+    LinearLayout p = u.panel();
+    chart(a, p, "compass", -1, target, 330);
+    TextView state = u.text("", 13, u.muted);
+    a.bind(
+        state,
+        () -> !a.e.hasCompass ? "设备没有提供旋转矢量传感器" : guide ? "方位基准：真北（由磁偏角修正）" : "方位基准：磁北 · 请将手机平放");
+    p.addView(state);
+    u.gap(p, 8);
+    TextView quality = u.text("", 13, u.warning);
+    a.bind(
+        quality,
+        () -> a.e.sensorAccuracy <= 1 ? "方向可靠性较低：请远离磁铁、金属或磁吸壳，并缓慢转动手机。" : "方向仅供参考，不作为专业测量依据。");
+    p.addView(quality);
+    a.body.addView(p);
+    if (guide) {
+      LinearLayout info = u.panel();
+      TextView distance = u.title("等待定位", 32);
+      a.bind(
+          distance,
+          () ->
+              a.e.fresh()
+                  ? Geo.meters(
+                      Geo.distance(
+                          a.e.location.getLatitude(),
+                          a.e.location.getLongitude(),
+                          target.lat,
+                          target.lon))
+                  : "等待新鲜位置");
+      info.addView(distance);
+      u.gap(info, 10);
+      TextView bearing = u.text("", 15, u.accent);
+      a.bind(
+          bearing,
+          () ->
+              a.e.fresh()
+                  ? f(
+                      "目标真北方位 %.0f°",
+                      Geo.bearing(
+                          a.e.location.getLatitude(),
+                          a.e.location.getLongitude(),
+                          target.lat,
+                          target.lon))
+                  : "需要定位后才能计算目标方向");
+      info.addView(bearing);
+      u.gap(info, 10);
+      u.note(info, "这是直线方向指引，不是道路导航。不能判断障碍、地形或可通行路线；接近目标时请结合定位精度判断。");
+      a.body.addView(info);
+    }
+  }
+
+  private static void speed(MainActivity a) {
+    Ui u = a.u;
+    u.section(a.body, "LIVE SPEED", "大字速度表");
+    LinearLayout p = u.panel();
+    u.gap(p, 32);
+    TextView speed = u.title("—", 76);
+    speed.setGravity(Gravity.CENTER);
+    a.bind(
+        speed,
+        () ->
+            a.e.fresh() && a.e.location.hasSpeed()
+                ? f("%.1f", a.e.location.getSpeed() * 3.6)
+                : "—");
+    p.addView(speed);
+    TextView unit = u.text("km/h", 22, u.accent);
+    unit.setGravity(Gravity.CENTER);
+    p.addView(unit);
+    u.gap(p, 30);
+    TextView other = u.text("", 15, u.muted);
+    other.setGravity(Gravity.CENTER);
+    a.bind(
+        other,
+        () ->
+            a.e.fresh() && a.e.location.hasSpeed()
+                ? f("%.2f m/s", a.e.location.getSpeed())
+                : "等待有效速度数据");
+    p.addView(other);
+    u.gap(p, 24);
+    Switch keep = new Switch(a);
+    keep.setText("保持屏幕常亮");
+    keep.setTextColor(u.text);
+    keep.setMinHeight(u.dp(48));
+    keep.setOnCheckedChangeListener((v, on) -> a.keepAwake(on));
+    p.addView(keep);
+    a.body.addView(p);
+    u.note(a.body, "速度来自定位数据，静止或弱信号时可能抖动。请勿在驾驶时操作手机。离开这个页面后会取消常亮。");
+  }
+
+  private static void diagnostics(MainActivity a) {
+    Ui u = a.u;
+    u.section(a.body, "KNOW WHAT IS HAPPENING", "定位诊断");
+    LinearLayout p = u.panel();
+    TextView details = u.text("", 14, u.text);
+    a.bind(
+        details,
+        () ->
+            "设备  "
+                + Build.MANUFACTURER
+                + " "
+                + Build.MODEL
+                + "\nAndroid  "
+                + Build.VERSION.RELEASE
+                + " / API "
+                + Build.VERSION.SDK_INT
+                + "\n精确位置权限  "
+                + (a.e.precise() ? "已授予" : "未授予")
+                + "\n系统定位  "
+                + (a.e.enabled() ? "开启" : "关闭")
+                + "\nGPS 提供器  "
+                + (a.e.gpsEnabled() ? "开启" : "关闭或不可用")
+                + "\n旋转矢量传感器  "
+                + (a.e.hasCompass ? "可用" : "未提供")
+                + "\n数据年龄  "
+                + (a.e.location == null ? "无位置" : a.e.age() / 1000 + " 秒")
+                + "\n当前提供器  "
+                + (a.e.location == null ? "—" : a.e.location.getProvider())
+                + "\n模拟位置  "
+                + (a.e.location == null ? "—" : a.e.location.isMock() ? "是" : "否")
+                + "\n卫星信号记录  "
+                + a.e.currentSatellites().size()
+                + " 条\n频率字段  "
+                + (a.e.currentSatellites().stream().anyMatch(s -> s.hasFrequency)
+                    ? "设备有提供"
+                    : "当前未提供 / 无信号")
+                + "\n"
+                + a.e.problem);
+    details.setLineSpacing(u.dp(7), 1);
+    p.addView(details);
+    a.body.addView(p);
+    button(a, a.body, "请求精确定位", a::askLocation);
+    button(a, a.body, "应用权限设置", a::appSettings);
+    button(
+        a,
+        a.body,
+        "系统定位设置",
+        () -> a.openSystem(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)));
+    u.note(a.body, "首次定位耗时不是严格冷启动测试。频率有数据不等于已经验证双频性能。诊断只检查可观察状态，不提供虚假的一键增强。");
+  }
+
+  private static void settings(MainActivity a) {
+    Ui u = a.u;
+    u.section(a.body, "MAKE IT YOURS", "设置与关于");
+    button(a, a.body, u.light ? "切换到深色主题" : "切换到浅色主题", a::theme);
+    button(a, a.body, a.dms() ? "坐标显示：度分秒（点击切换）" : "坐标显示：十进制度（点击切换）", a::toggleDms);
+    button(a, a.body, "定位与通知权限", a::appSettings);
+    button(
+        a,
+        a.body,
+        "系统电池优化设置",
+        () -> a.openSystem(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)));
+    LinearLayout p = u.panel();
+    p.addView(u.title("红米 / 澎湃 OS 使用提示", 17));
+    u.gap(p, 10);
+    u.note(
+        p,
+        "如需长时间熄屏记录，可在系统应用设置中检查后台电池策略。菜单因系统版本不同而异，必要时允许应用在后台运行。\n\n"
+            + "星迹不会自动更改系统设置，也不承诺永不被系统终止。记录意外中断后，下次打开会保留已落盘的数据并标为中断。");
+    a.body.addView(p);
+    LinearLayout privacy = u.panel();
+    privacy.addView(u.title("你的轨迹，只在你手里", 18));
+    u.gap(privacy, 10);
+    u.note(
+        privacy,
+        "无账号、广告、分析 SDK 或联网权限。未申请后台始终定位。只有手动开始轨迹后，才使用前台服务继续记录。\n\n"
+            + "导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，CSV 用于保留全部原始点。\n\n"
+            + "星迹 "
+            + BuildConfig.VERSION_NAME
+            + " · build "
+            + BuildConfig.VERSION_CODE
+            + "\n目标 Android 16 · GitHub Actions 云端构建\n此版本没有道路底图、离线地图、模拟定位或坐标系转换。");
+    a.body.addView(privacy);
+  }
 }
