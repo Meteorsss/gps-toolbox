@@ -1,0 +1,47 @@
+name: Publish verified APK
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Android APK workflow run ID
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify run and publish private prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          python - <<'PY'
+          import json,os,subprocess,pathlib
+          run_id=os.environ['RUN_ID']
+          if not run_id.isdigit(): raise SystemExit('Invalid run ID')
+          repo=os.environ['GH_REPO']
+          run=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/actions/runs/{run_id}']))
+          if run['name']!='Android APK' or run['conclusion']!='success' or run['head_branch']!='main':
+              raise SystemExit('Only a successful main-branch Android APK run may be published')
+          subprocess.run(['gh','run','download',run_id,'--repo',repo,'--name','StarTrace-installable-apk','--dir','dist'],check=True)
+          tag=f'v0.1.0-build-{run["run_number"]}'
+          notes=f'''星迹 GPS 工具箱 · 真机验证预览版
+          
+          下载 APK 安装。固定签名，可覆盖后续更新。所有数据默认仅保存于手机。
+          
+          已通过云端编译、单元测试、Android Lint、签名校验及 Android 16 模拟器测试。
+          尚未在红米 K70 / 澎湃 OS 3 真机验证卫星能力、方向精度和长时间熄屏记录。
+          
+          功能：仪表、卫星天空图与信号、轨迹录制、GPX/CSV 导出、收藏地点、指南针、速度表、坐标格式和两点测距。
+          不含道路底图或道路导航；高度为椭球高，不是海拔。
+          
+          构建：{run['html_url']}
+          源码提交：{run['head_sha']}
+          '''
+          subprocess.run(['gh','release','create',tag,'--repo',repo,'--target',run['head_sha'],'--prerelease','--title',f'星迹 0.1.0 · build {run["run_number"]}','--notes',notes,*[str(p) for p in pathlib.Path('dist').iterdir() if p.is_file()]],check=True)
+          PY
