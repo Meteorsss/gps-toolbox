@@ -192,14 +192,21 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
 
   /** Preserve every frequency entry from one Android callback before calculating unique counts. */
   void acceptGnssStatus(GnssStatus status) {
-    List<Satellite> list=new ArrayList<>(status.getSatelliteCount());
-    for(int i=0;i<status.getSatelliteCount();i++){
-      Satellite s=new Satellite();s.system=status.getConstellationType(i);s.id=status.getSvid(i);
-      s.azimuth=status.getAzimuthDegrees(i);s.elevation=status.getElevationDegrees(i);
-      s.cn0=status.getCn0DbHz(i);s.used=status.usedInFix(i);s.hasFrequency=status.hasCarrierFrequencyHz(i);
-      if(s.hasFrequency)s.frequency=status.getCarrierFrequencyHz(i);list.add(s);
+    List<Satellite> list = new ArrayList<>(status.getSatelliteCount());
+    for (int i = 0; i < status.getSatelliteCount(); i++) {
+      Satellite s = new Satellite();
+      s.system = status.getConstellationType(i);
+      s.id = status.getSvid(i);
+      s.azimuth = status.getAzimuthDegrees(i);
+      s.elevation = status.getElevationDegrees(i);
+      s.cn0 = status.getCn0DbHz(i);
+      s.used = status.usedInFix(i);
+      s.hasFrequency = status.hasCarrierFrequencyHz(i);
+      if (s.hasFrequency) s.frequency = status.getCarrierFrequencyHz(i);
+      list.add(s);
     }
-    list.sort((a,b)->Float.compare(b.cn0,a.cn0));acceptSatelliteSnapshot(list);
+    list.sort((a, b) -> Float.compare(b.cn0, a.cn0));
+    acceptSatelliteSnapshot(list);
   }
 
   void acceptSatelliteSnapshot(List<Satellite> list) {

@@ -27,7 +27,10 @@ public final class SatelliteStats {
         usedIds.add(s.key());
         usedEntries++;
       }
-      if(Float.isFinite(s.cn0)&&s.cn0>0){trackedIds.add(s.key());trackedEntries++;}
+      if (Float.isFinite(s.cn0) && s.cn0 > 0) {
+        trackedIds.add(s.key());
+        trackedEntries++;
+      }
     }
 
     public int received() {
@@ -47,7 +50,9 @@ public final class SatelliteStats {
     }
 
     /** Number of current callback entries with positive carrier-to-noise density. */
-    public int trackedEntries(){return trackedEntries;}
+    public int trackedEntries() {
+      return trackedEntries;
+    }
 
     public int usedEntries() {
       return usedEntries;

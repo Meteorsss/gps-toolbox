@@ -69,14 +69,59 @@ public class SatelliteStatsTest {
     assertEquals(0, s.total.used());
   }
 
-  @Test public void positiveEntriesAreDifferentFromPositiveSatellites(){
-    SatelliteStats.Snapshot s=SatelliteStats.of(Arrays.asList(signal(4,194,true,35),signal(4,194,true,25),signal(4,195,true,40),signal(4,195,false,0)));
-    assertEquals(4,s.total.entries());assertEquals(3,s.total.usedEntries());assertEquals(2,s.total.received());assertEquals(2,s.total.used());assertEquals(3,s.total.trackedEntries());assertEquals(2,s.total.tracked());
+  @Test
+  public void positiveEntriesAreDifferentFromPositiveSatellites() {
+    SatelliteStats.Snapshot s =
+        SatelliteStats.of(
+            Arrays.asList(
+                signal(4, 194, true, 35),
+                signal(4, 194, true, 25),
+                signal(4, 195, true, 40),
+                signal(4, 195, false, 0)));
+    assertEquals(4, s.total.entries());
+    assertEquals(3, s.total.usedEntries());
+    assertEquals(2, s.total.received());
+    assertEquals(2, s.total.used());
+    assertEquals(3, s.total.trackedEntries());
+    assertEquals(2, s.total.tracked());
   }
-  @Test public void constellationEntrySumsMatchTotal(){
-    SatelliteStats.Snapshot s=SatelliteStats.of(Arrays.asList(signal(5,6,true,30),signal(5,6,true,38),signal(5,6,false,0),signal(4,194,true,35),signal(4,194,true,25),signal(4,195,true,40),signal(4,195,false,0)));
-    assertEquals(7,s.total.entries());assertEquals(5,s.total.usedEntries());assertEquals(3,s.total.received());assertEquals(3,s.total.used());assertEquals(s.total.entries(),s.system(4).entries()+s.system(5).entries());assertEquals(s.total.usedEntries(),s.system(4).usedEntries()+s.system(5).usedEntries());assertEquals(s.total.received(),s.system(4).received()+s.system(5).received());
+
+  @Test
+  public void constellationEntrySumsMatchTotal() {
+    SatelliteStats.Snapshot s =
+        SatelliteStats.of(
+            Arrays.asList(
+                signal(5, 6, true, 30),
+                signal(5, 6, true, 38),
+                signal(5, 6, false, 0),
+                signal(4, 194, true, 35),
+                signal(4, 194, true, 25),
+                signal(4, 195, true, 40),
+                signal(4, 195, false, 0)));
+    assertEquals(7, s.total.entries());
+    assertEquals(5, s.total.usedEntries());
+    assertEquals(3, s.total.received());
+    assertEquals(3, s.total.used());
+    assertEquals(s.total.entries(), s.system(4).entries() + s.system(5).entries());
+    assertEquals(s.total.usedEntries(), s.system(4).usedEntries() + s.system(5).usedEntries());
+    assertEquals(s.total.received(), s.system(4).received() + s.system(5).received());
   }
-  @Test public void zeroSignalUsedFlagIsPreservedRatherThanGuessed(){SatelliteStats.Snapshot s=SatelliteStats.of(Arrays.asList(signal(1,9,true,0)));assertEquals(1,s.total.usedEntries());assertEquals(1,s.total.used());assertEquals(0,s.total.trackedEntries());}
-  @Test public void missingFrequencyDoesNotDropEntries(){SatelliteStats.Signal a=signal(1,10,true,20),b=signal(1,10,false,15);a.hasFrequency=false;b.hasFrequency=false;SatelliteStats.Snapshot s=SatelliteStats.of(Arrays.asList(a,b));assertEquals(2,s.total.entries());assertEquals(1,s.total.received());}
+
+  @Test
+  public void zeroSignalUsedFlagIsPreservedRatherThanGuessed() {
+    SatelliteStats.Snapshot s = SatelliteStats.of(Arrays.asList(signal(1, 9, true, 0)));
+    assertEquals(1, s.total.usedEntries());
+    assertEquals(1, s.total.used());
+    assertEquals(0, s.total.trackedEntries());
+  }
+
+  @Test
+  public void missingFrequencyDoesNotDropEntries() {
+    SatelliteStats.Signal a = signal(1, 10, true, 20), b = signal(1, 10, false, 15);
+    a.hasFrequency = false;
+    b.hasFrequency = false;
+    SatelliteStats.Snapshot s = SatelliteStats.of(Arrays.asList(a, b));
+    assertEquals(2, s.total.entries());
+    assertEquals(1, s.total.received());
+  }
 }

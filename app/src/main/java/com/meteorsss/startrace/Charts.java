@@ -109,8 +109,12 @@ public final class Charts extends View {
   }
 
   private void signals(Canvas c) {
-    List<GnssEngine.Satellite> list=new ArrayList<>(a.e.currentSatellites());
-    if(a.groupSignals())list.sort(Comparator.comparingInt((GnssEngine.Satellite s)->s.system).thenComparingInt(s->s.id).thenComparingDouble(s->s.hasFrequency?s.frequency:0));
+    List<GnssEngine.Satellite> list = new ArrayList<>(a.e.currentSatellites());
+    if (a.groupSignals())
+      list.sort(
+          Comparator.comparingInt((GnssEngine.Satellite s) -> s.system)
+              .thenComparingInt(s -> s.id)
+              .thenComparingDouble(s -> s.hasFrequency ? s.frequency : 0));
     int n = list.size();
     if (n == 0) {
       label(c, "暂无信号记录", getWidth() / 2f, u.dp(35), u.muted, 14, Paint.Align.CENTER);
@@ -120,7 +124,14 @@ public final class Charts extends View {
     for (int i = 0; i < n; i++) {
       GnssEngine.Satellite s = list.get(i);
       float y = u.dp(17 + i * 34);
-      label(c,(s.used?"✓ ":"— ")+s.label(),0,y,s.used?u.accent:u.text,11,Paint.Align.LEFT);
+      label(
+          c,
+          (s.used ? "✓ " : "— ") + s.label(),
+          0,
+          y,
+          s.used ? u.accent : u.text,
+          11,
+          Paint.Align.LEFT);
       String freq =
           s.hasFrequency ? String.format(Locale.US, "%.2f MHz", s.frequency / 1e6) : "频率未提供";
       label(c, freq, 0, y + u.dp(12), u.muted, 9, Paint.Align.LEFT);

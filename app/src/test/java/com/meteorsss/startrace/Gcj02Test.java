@@ -4,7 +4,10 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-/** Reference vectors from eviltransform/go/transform_test.go (03ba58d); bundled BSD-2-Clause license. */
+/**
+ * Reference vectors from eviltransform/go/transform_test.go (03ba58d); bundled BSD-2-Clause
+ * license.
+ */
 public class Gcj02Test {
   private void check(double a, double b, double x, double y) {
     Gcj02.Coordinate c = Gcj02.fromWgs84(a, b);
