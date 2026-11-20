@@ -11,7 +11,9 @@ import java.util.*;
 
 public final class GnssEngine implements LocationListener, SensorEventListener {
   public static final class Satellite extends SatelliteStats.Signal {
-    public String label() { return systemName(system) + " " + id; }
+    public String label() {
+      return systemName(system) + " " + id;
+    }
   }
 
   public interface Observer {
@@ -27,13 +29,16 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
   private final SensorManager sensors;
   private final Set<Observer> observers = new HashSet<>();
   private boolean visible, recording, registered, sensorRegistered, compassActive;
-  private final float[] rotationMatrix=new float[9], adjustedMatrix=new float[9], orientation=new float[3];
+  private final float[] rotationMatrix = new float[9],
+      adjustedMatrix = new float[9],
+      orientation = new float[3];
   private final WindowManager windowManager;
   private float declination;
   public long orientationAt;
   public boolean statusRegistered;
-  private SatelliteStats.Snapshot satelliteStats=SatelliteStats.of(Collections.emptyList());
-  private static final SatelliteStats.Snapshot EMPTY_STATS=SatelliteStats.of(Collections.emptyList());
+  private SatelliteStats.Snapshot satelliteStats = SatelliteStats.of(Collections.emptyList());
+  private static final SatelliteStats.Snapshot EMPTY_STATS =
+      SatelliteStats.of(Collections.emptyList());
   public Location location;
   public List<Satellite> satellites = new ArrayList<>();
   public long started, firstFix = -1, satelliteAt;
@@ -96,16 +101,36 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
   }
 
   public void setVisible(boolean on) {
-    visible=on;reconcile();updateSensorSubscription();
+    visible = on;
+    reconcile();
+    updateSensorSubscription();
   }
-  public void setCompassActive(boolean on) { compassActive=on;updateSensorSubscription(); }
-  public boolean compassSubscribed() { return sensorRegistered; }
+
+  public void setCompassActive(boolean on) {
+    compassActive = on;
+    updateSensorSubscription();
+  }
+
+  public boolean compassSubscribed() {
+    return sensorRegistered;
+  }
+
   private void updateSensorSubscription() {
-    boolean wanted=visible && compassActive && hasCompass;
-    if(wanted&&!sensorRegistered){
-      magneticHeading=Float.NaN;orientationAt=0;
-      sensorRegistered=sensors.registerListener(this,sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),SensorManager.SENSOR_DELAY_GAME);
-    }else if(!wanted&&sensorRegistered){sensors.unregisterListener(this);sensorRegistered=false;magneticHeading=Float.NaN;orientationAt=0;}
+    boolean wanted = visible && compassActive && hasCompass;
+    if (wanted && !sensorRegistered) {
+      magneticHeading = Float.NaN;
+      orientationAt = 0;
+      sensorRegistered =
+          sensors.registerListener(
+              this,
+              sensors.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
+              SensorManager.SENSOR_DELAY_GAME);
+    } else if (!wanted && sensorRegistered) {
+      sensors.unregisterListener(this);
+      sensorRegistered = false;
+      magneticHeading = Float.NaN;
+      orientationAt = 0;
+    }
   }
 
   public void setRecording(boolean on) {
@@ -123,8 +148,8 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
       try {
         manager.requestLocationUpdates(
             LocationManager.GPS_PROVIDER, 1000, 0, this, Looper.getMainLooper());
-        statusRegistered=manager.registerGnssStatusCallback(app.getMainExecutor(), callback);
-        if(!statusRegistered) problem="系统未接受卫星状态订阅；计数暂不可用";
+        statusRegistered = manager.registerGnssStatusCallback(app.getMainExecutor(), callback);
+        if (!statusRegistered) problem = "系统未接受卫星状态订阅；计数暂不可用";
         registered = true;
       } catch (SecurityException | IllegalArgumentException e) {
         manager.removeUpdates(this);
@@ -137,8 +162,8 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
       registered = false;
       satellites = new ArrayList<>();
       satelliteAt = 0;
-      statusRegistered=false;
-      satelliteStats=EMPTY_STATS;
+      statusRegistered = false;
+      satelliteStats = EMPTY_STATS;
     }
     notifyChanged();
   }
@@ -154,8 +179,8 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
         @Override
         public void onStopped() {
           satellites = new ArrayList<>();
-          satelliteAt=0;
-          satelliteStats=EMPTY_STATS;
+          satelliteAt = 0;
+          satelliteStats = EMPTY_STATS;
           notifyChanged();
         }
 
@@ -179,20 +204,44 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
         }
       };
 
-  void acceptSatelliteSnapshot(List<Satellite> list){
-    satellites=Collections.unmodifiableList(new ArrayList<>(list));satelliteStats=SatelliteStats.of(satellites);satelliteAt=SystemClock.elapsedRealtime();notifyChanged();
+  void acceptSatelliteSnapshot(List<Satellite> list) {
+    satellites = Collections.unmodifiableList(new ArrayList<>(list));
+    satelliteStats = SatelliteStats.of(satellites);
+    satelliteAt = SystemClock.elapsedRealtime();
+    notifyChanged();
   }
-  public boolean satelliteDataFresh() { return precise() && gpsEnabled() && satelliteAt>0 && SystemClock.elapsedRealtime()-satelliteAt<=15000; }
-  public List<Satellite> currentSatellites() { return satelliteDataFresh()?satellites:Collections.emptyList(); }
-  public SatelliteStats.Snapshot satelliteStats() { return satelliteDataFresh()?satelliteStats:EMPTY_STATS; }
-  public int uniqueCount(boolean used) { SatelliteStats.Counts counts=satelliteStats().total;return used?counts.used():counts.received(); }
+
+  public boolean satelliteDataFresh() {
+    return precise()
+        && gpsEnabled()
+        && satelliteAt > 0
+        && SystemClock.elapsedRealtime() - satelliteAt <= 15000;
+  }
+
+  public List<Satellite> currentSatellites() {
+    return satelliteDataFresh() ? satellites : Collections.emptyList();
+  }
+
+  public SatelliteStats.Snapshot satelliteStats() {
+    return satelliteDataFresh() ? satelliteStats : EMPTY_STATS;
+  }
+
+  public int uniqueCount(boolean used) {
+    SatelliteStats.Counts counts = satelliteStats().total;
+    return used ? counts.used() : counts.received();
+  }
 
   @Override
   public void onLocationChanged(Location fix) {
     if (!Geo.valid(fix.getLatitude(), fix.getLongitude())) return;
     location = new Location(fix);
-    GeomagneticField field=new GeomagneticField((float)location.getLatitude(),(float)location.getLongitude(),location.hasAltitude()?(float)location.getAltitude():0,location.getTime());
-    declination=field.getDeclination();
+    GeomagneticField field =
+        new GeomagneticField(
+            (float) location.getLatitude(),
+            (float) location.getLongitude(),
+            location.hasAltitude() ? (float) location.getAltitude() : 0,
+            location.getTime());
+    declination = field.getDeclination();
     if (firstFix < 0 && fresh()) firstFix = SystemClock.elapsedRealtime() - started;
     if (recorder != null) recorder.fix(new Location(fix));
     notifyChanged();
@@ -212,23 +261,44 @@ public final class GnssEngine implements LocationListener, SensorEventListener {
     notifyChanged();
   }
 
-  @Override public void onSensorChanged(SensorEvent event) {
-    SensorManager.getRotationMatrixFromVector(rotationMatrix,event.values);
-    int rotation=windowManager.getDefaultDisplay().getRotation();
-    int x=SensorManager.AXIS_X,y=SensorManager.AXIS_Y;
-    if(rotation==Surface.ROTATION_90){x=SensorManager.AXIS_Y;y=SensorManager.AXIS_MINUS_X;}
-    else if(rotation==Surface.ROTATION_180){x=SensorManager.AXIS_MINUS_X;y=SensorManager.AXIS_MINUS_Y;}
-    else if(rotation==Surface.ROTATION_270){x=SensorManager.AXIS_MINUS_Y;y=SensorManager.AXIS_X;}
-    SensorManager.remapCoordinateSystem(rotationMatrix,x,y,adjustedMatrix);
-    SensorManager.getOrientation(adjustedMatrix,orientation);
-    // Keep only the latest sensor value. The compass view interpolates on vsync, not the 500ms UI tick.
-    magneticHeading=(float)Geo.normalize(Math.toDegrees(orientation[0]));
-    orientationAt=SystemClock.elapsedRealtime();
-    sensorAccuracy=event.accuracy;
+  @Override
+  public void onSensorChanged(SensorEvent event) {
+    SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values);
+    int rotation = windowManager.getDefaultDisplay().getRotation();
+    int x = SensorManager.AXIS_X, y = SensorManager.AXIS_Y;
+    if (rotation == Surface.ROTATION_90) {
+      x = SensorManager.AXIS_Y;
+      y = SensorManager.AXIS_MINUS_X;
+    } else if (rotation == Surface.ROTATION_180) {
+      x = SensorManager.AXIS_MINUS_X;
+      y = SensorManager.AXIS_MINUS_Y;
+    } else if (rotation == Surface.ROTATION_270) {
+      x = SensorManager.AXIS_MINUS_Y;
+      y = SensorManager.AXIS_X;
+    }
+    SensorManager.remapCoordinateSystem(rotationMatrix, x, y, adjustedMatrix);
+    SensorManager.getOrientation(adjustedMatrix, orientation);
+    // Keep only the latest sensor value. The compass view interpolates on vsync, not the 500ms UI
+    // tick.
+    magneticHeading = (float) Geo.normalize(Math.toDegrees(orientation[0]));
+    orientationAt = SystemClock.elapsedRealtime();
+    sensorAccuracy = event.accuracy;
   }
-  @Override public void onAccuracyChanged(Sensor sensor,int accuracy){sensorAccuracy=accuracy;}
-  public float declination() { return declination; }
-  public float trueHeading(){return Float.isNaN(magneticHeading)||!fresh()?Float.NaN:(float)Geo.normalize(magneticHeading+declination);}
+
+  @Override
+  public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    sensorAccuracy = accuracy;
+  }
+
+  public float declination() {
+    return declination;
+  }
+
+  public float trueHeading() {
+    return Float.isNaN(magneticHeading) || !fresh()
+        ? Float.NaN
+        : (float) Geo.normalize(magneticHeading + declination);
+  }
 
   public static String systemName(int system) {
     switch (system) {

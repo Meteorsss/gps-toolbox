@@ -16,9 +16,9 @@ public final class Gpx {
 
   public static String header(String name) {
     return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-               + "<gpx version=\"1.1\" creator=\"StarTrace\""
-               + " xmlns=\"http://www.topografix.com/GPX/1/1\""
-               + " xmlns:st=\"https://github.com/Meteorsss/gps-toolbox/xmlns/1\"><trk><name>"
+        + "<gpx version=\"1.1\" creator=\"StarTrace\""
+        + " xmlns=\"http://www.topografix.com/GPX/1/1\""
+        + " xmlns:st=\"https://github.com/Meteorsss/gps-toolbox/xmlns/1\"><trk><name>"
         + escape(name)
         + "</name>\n";
   }

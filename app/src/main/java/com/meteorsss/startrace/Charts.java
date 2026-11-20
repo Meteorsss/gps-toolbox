@@ -28,8 +28,14 @@ public final class Charts extends View {
             : kind.equals("signal") ? "卫星信号强度图" : kind.equals("track") ? "无底图轨迹预览" : "指南针");
   }
 
-  public void refreshData(){
-    if(kind.equals("signal")&&getLayoutParams()!=null){int height=u.dp(Math.max(64,a.e.currentSatellites().size()*34+14));if(getLayoutParams().height!=height){getLayoutParams().height=height;requestLayout();}}
+  public void refreshData() {
+    if (kind.equals("signal") && getLayoutParams() != null) {
+      int height = u.dp(Math.max(64, a.e.currentSatellites().size() * 34 + 14));
+      if (getLayoutParams().height != height) {
+        getLayoutParams().height = height;
+        requestLayout();
+      }
+    }
     invalidate();
   }
 
@@ -122,7 +128,8 @@ public final class Charts extends View {
           c,
           left,
           y - 2,
-          left + (right - left) * (Float.isFinite(s.cn0)?Math.max(0,Math.min(1, s.cn0 / 60)):0),
+          left
+              + (right - left) * (Float.isFinite(s.cn0) ? Math.max(0, Math.min(1, s.cn0 / 60)) : 0),
           y - 2,
           u.constellation(s.system),
           5);
@@ -190,5 +197,4 @@ public final class Charts extends View {
         10,
         Paint.Align.CENTER);
   }
-
 }
