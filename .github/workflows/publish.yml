@@ -48,5 +48,10 @@ jobs:
           构建：{run['html_url']}
           源码提交：{run['head_sha']}
           '''
-          subprocess.run(['gh','release','create',tag,'--repo',repo,'--target',run['head_sha'],'--prerelease','--title',f'星迹 0.1.0 · build {run["run_number"]}','--notes',notes,*[str(p) for p in pathlib.Path('dist').iterdir() if p.is_file()]],check=True)
+          assets=[str(p) for p in pathlib.Path('dist').iterdir() if p.is_file()]
+          existing=subprocess.run(['gh','release','view',tag,'--repo',repo],capture_output=True)
+          if existing.returncode==0:
+              subprocess.run(['gh','release','upload',tag,'--repo',repo,'--clobber',*assets],check=True)
+          else:
+              subprocess.run(['gh','release','create',tag,'--repo',repo,'--verify-tag','--prerelease','--title',f'星迹 0.1.0 · build {run["run_number"]}','--notes',notes,*assets],check=True)
           PY
