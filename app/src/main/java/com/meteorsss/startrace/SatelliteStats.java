@@ -18,7 +18,7 @@ public final class SatelliteStats {
     private final Set<String> reportedIds = new HashSet<>();
     private final Set<String> usedIds = new HashSet<>();
     private final Set<String> trackedIds = new HashSet<>();
-    private int entries, usedEntries;
+    private int entries, usedEntries, trackedEntries;
 
     private void add(Signal s) {
       entries++;
@@ -27,7 +27,7 @@ public final class SatelliteStats {
         usedIds.add(s.key());
         usedEntries++;
       }
-      if (Float.isFinite(s.cn0) && s.cn0 > 0) trackedIds.add(s.key());
+      if(Float.isFinite(s.cn0)&&s.cn0>0){trackedIds.add(s.key());trackedEntries++;}
     }
 
     public int received() {
@@ -45,6 +45,9 @@ public final class SatelliteStats {
     public int entries() {
       return entries;
     }
+
+    /** Number of current callback entries with positive carrier-to-noise density. */
+    public int trackedEntries(){return trackedEntries;}
 
     public int usedEntries() {
       return usedEntries;

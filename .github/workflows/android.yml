@@ -46,7 +46,7 @@ jobs:
       - name: Verify release signature and privacy manifest
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/StarTrace-0.1.1-build-${{ github.run_number }}.apk
+          cp app/build/outputs/apk/release/app-release.apk dist/StarTrace-0.1.2-build-${{ github.run_number }}.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/*.apk | tee dist/signature.txt
           grep -q 'certificate SHA-256 digest: 8cd33c25b2fd01833a56c0ff2e71a5bcb14d25eaa39046928bca92854edc1098' dist/signature.txt
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions dist/*.apk | tee dist/permissions.txt

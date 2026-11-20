@@ -130,7 +130,7 @@ public final class Screens {
     u.gap(b, 12);
     u.pair(
         b,
-        metric(a, "参与定位 / 收到", () -> e.uniqueCount(true) + " / " + e.uniqueCount(false), "卫星去重计数"),
+        metric(a, "独立卫星", () -> e.satelliteDataFresh()?e.uniqueCount(true) + " / " + e.uniqueCount(false):"— / —", "参与定位 / 上报 · 颗"),
         metric(
             a,
             "本次首次定位",
@@ -198,102 +198,36 @@ public final class Screens {
     u.note(b, "纯本地 · 无账号 · 无联网权限\n建议在开阔处等待首次定位；室内可能无法获取卫星位置。");
   }
 
-  private static void satellites(MainActivity a) {
-    Ui u = a.u;
-    LinearLayout b = a.body;
-    u.section(b, "LOOK UP, KNOW MORE", "头顶的卫星");
-    LinearLayout stats = u.panel();
-    TextView counts = u.title("等待卫星", 22);
-    a.bind(
-        counts,
-        () -> {
-          SatelliteStats.Counts c = a.e.satelliteStats().total;
-          return c.received() + " 收到 / " + c.used() + " 参与定位";
-        });
-    stats.addView(counts);
-    u.gap(stats, 8);
-    TextView raw = u.text("", 12, u.muted);
-    a.bind(
-        raw,
-        () -> {
-          SatelliteStats.Counts c = a.e.satelliteStats().total;
-          return "系统上报 "
-              + c.entries()
-              + " 条信号记录 · "
-              + c.usedEntries()
-              + " 条标记参与定位\n其中 C/N₀ > 0 的独立卫星 "
-              + c.tracked()
-              + " 颗";
-        });
-    stats.addView(raw);
-    u.gap(stats, 8);
-    TextView age = u.text("", 12, u.accent);
-    a.bind(
-        age,
-        () ->
-            a.e.satelliteDataFresh()
-                ? "状态更新于 "
-                    + Math.max(0, (SystemClock.elapsedRealtime() - a.e.satelliteAt) / 1000)
-                    + " 秒前"
-                : "暂无新鲜卫星状态；0 不代表天空没有卫星");
-    stats.addView(age);
-    u.gap(stats, 10);
-    u.note(
-        stats,
-        "收到 = 系统当前上报的独立卫星，按星座 + SVID 去重，包含系统上报但信号为 0 的条目。参与定位 = 同一卫星任一频率被系统标记用于最近定位解算；不是应用自行推算。");
-    b.addView(stats);
-    LinearLayout table = u.panel();
-    table.addView(u.title("按卫星系统统计", 18));
-    u.gap(table, 12);
-    LinearLayout header = u.row();
-    header.addView(u.text("系统", 12, u.muted), new LinearLayout.LayoutParams(0, -2, 1));
-    TextView heading = u.text("收到 / 参与定位", 12, u.muted);
-    heading.setGravity(Gravity.END);
-    header.addView(heading);
-    table.addView(header);
-    u.gap(table, 8);
-    int[] systems = {
-      GnssStatus.CONSTELLATION_BEIDOU,
-      GnssStatus.CONSTELLATION_GPS,
-      GnssStatus.CONSTELLATION_GALILEO,
-      GnssStatus.CONSTELLATION_GLONASS,
-      GnssStatus.CONSTELLATION_QZSS,
-      GnssStatus.CONSTELLATION_IRNSS,
-      GnssStatus.CONSTELLATION_SBAS,
-      GnssStatus.CONSTELLATION_UNKNOWN
-    };
-    for (int system : systems) {
-      LinearLayout row = u.row();
-      row.setPadding(0, u.dp(9), 0, u.dp(9));
-      row.addView(
-          u.text(GnssEngine.systemName(system), 15, u.constellation(system)),
-          new LinearLayout.LayoutParams(0, -2, 1));
-      TextView number = u.title("0 / 0", 18);
-      number.setGravity(Gravity.END);
-      a.bind(
-          number,
-          () -> {
-            SatelliteStats.Counts c = a.e.satelliteStats().system(system);
-            return c.received() + " / " + c.used();
-          });
-      row.addView(number);
-      table.addView(row);
+  private static void satellites(MainActivity a){
+    Ui u=a.u;LinearLayout b=a.body;u.section(b,"ONE SKY, TWO COUNTS","头顶的卫星");
+    LinearLayout totals=u.panel();totals.addView(u.title("参与定位 / 系统上报",17));u.gap(totals,14);
+    totals.addView(u.text("频率信号 · 条（同星多频分别计数）",12,u.accent));u.gap(totals,7);
+    TextView entries=u.title("— / —",34);a.bind(entries,()->{SatelliteStats.Counts c=a.e.satelliteStats().total;return a.e.satelliteDataFresh()?c.usedEntries()+" / "+c.entries():"— / —";});totals.addView(entries);u.gap(totals,16);
+    totals.addView(u.text("独立卫星 · 颗（星座 + SVID 去重）",12,u.accent));u.gap(totals,7);
+    TextView unique=u.title("— / —",30);a.bind(unique,()->{SatelliteStats.Counts c=a.e.satelliteStats().total;return a.e.satelliteDataFresh()?c.used()+" / "+c.received():"— / —";});totals.addView(unique);u.gap(totals,12);
+    TextView positive=u.text("",12,u.muted);a.bind(positive,()->{SatelliteStats.Counts c=a.e.satelliteStats().total;return a.e.satelliteDataFresh()?"C/N₀ > 0："+c.trackedEntries()+" 条信号 / "+c.tracked()+" 颗独立卫星":"等待新鲜卫星状态；— 不代表天空中没有卫星";});totals.addView(positive);u.gap(totals,7);
+    TextView age=u.text("",12,u.muted);a.bind(age,()->a.e.satelliteDataFresh()?"当前快照 · "+Math.max(0,(SystemClock.elapsedRealtime()-a.e.satelliteAt)/1000)+" 秒前更新 · 不累加历史":"暂无可用快照");totals.addView(age);u.gap(totals,12);
+    u.note(totals,"同一颗卫星的两个频率会产生两条记录，但仍是一颗卫星。与按频率计数的软件对比时，请看上面的“频率信号”，不要与“独立卫星”混比。所有斜线左侧均为参与定位，右侧为系统上报。");b.addView(totals);
+    LinearLayout table=u.panel();table.addView(u.title("按卫星系统统计",18));u.gap(table,8);u.note(table,"两列均为：参与定位 / 系统上报");u.gap(table,12);
+    LinearLayout header=u.row();header.addView(u.text("系统",11,u.muted),new LinearLayout.LayoutParams(0,-2,1.1f));
+    for(String label:new String[]{"独立卫星·颗","频率信号·条"}){TextView t=u.text(label,11,u.muted);t.setGravity(Gravity.END);header.addView(t,new LinearLayout.LayoutParams(0,-2,1));}table.addView(header);u.gap(table,6);
+    int[] systems={GnssStatus.CONSTELLATION_BEIDOU,GnssStatus.CONSTELLATION_GPS,GnssStatus.CONSTELLATION_GALILEO,GnssStatus.CONSTELLATION_GLONASS,GnssStatus.CONSTELLATION_QZSS,GnssStatus.CONSTELLATION_IRNSS,GnssStatus.CONSTELLATION_SBAS,GnssStatus.CONSTELLATION_UNKNOWN};
+    for(int system:systems){
+      LinearLayout row=u.row();row.setPadding(0,u.dp(11),0,u.dp(11));row.addView(u.text(GnssEngine.systemName(system),13,u.constellation(system)),new LinearLayout.LayoutParams(0,-2,1.1f));
+      TextView satellites=u.title("— / —",16),signals=u.title("— / —",16);satellites.setGravity(Gravity.END);signals.setGravity(Gravity.END);
+      satellites.setContentDescription(GnssEngine.systemName(system)+" 独立卫星 参与定位 / 系统上报");signals.setContentDescription(GnssEngine.systemName(system)+" 频率信号 参与定位 / 系统上报");
+      a.bind(satellites,()->{SatelliteStats.Counts c=a.e.satelliteStats().system(system);return a.e.satelliteDataFresh()?c.used()+" / "+c.received():"— / —";});
+      a.bind(signals,()->{SatelliteStats.Counts c=a.e.satelliteStats().system(system);return a.e.satelliteDataFresh()?c.usedEntries()+" / "+c.entries():"— / —";});
+      row.addView(satellites,new LinearLayout.LayoutParams(0,-2,1));row.addView(signals,new LinearLayout.LayoutParams(0,-2,1));table.addView(row);
     }
     b.addView(table);
-    LinearLayout sky = u.panel();
-    chart(a, sky, "sky", -1, null, 300);
-    u.note(sky, "实心 = 参与解算 · 空心 = 未参与\n青绿 GPS · 蓝色北斗 · 粉色 Galileo · 橙色 GLONASS");
-    b.addView(sky);
-    LinearLayout signal = u.panel();
-    signal.addView(u.title("全部信号明细", 18));
-    u.gap(signal, 7);
-    u.note(
-        signal,
-        "按 C/N₀ 排序，单位 dB-Hz；不再限制为 20 条。\n多频记录与独立卫星数量分别统计，不为了对齐其他软件而重复计数。不同软件也可能保留旧快照或采用不同信号口径。");
-    u.gap(signal, 15);
-    chart(a, signal, "signal", -1, null, 64);
-    b.addView(signal);
-    button(a, b, "查看设备与定位诊断", () -> a.navigate("diagnostics"));
+    LinearLayout sky=u.panel();sky.addView(u.title("天空图 · 每颗卫星只画一次",16));chart(a,sky,"sky",-1,null,300);u.note(sky,"实心 = 至少一条频率参与定位；空心 = 当前未参与\n青绿 GPS · 蓝色北斗 · 粉色 Galileo · 橙色 GLONASS");b.addView(sky);
+    LinearLayout signal=u.panel();signal.addView(u.title("全部频率信号明细",18));u.gap(signal,8);
+    u.pair(signal,u.button("同星多频分组",a.groupSignals(),()->a.setGroupSignals(true)),u.button("按信号强度",!a.groupSignals(),()->a.setGroupSignals(false)));u.gap(signal,10);
+    u.note(signal,"相同星座和 SVID 的不同 MHz 是同一颗卫星的不同频率。✓ 为该条记录参与定位，— 为未参与；C/N₀ 单位 dB-Hz。保留系统上报的全部条目，包括 0 信号值。");u.gap(signal,15);chart(a,signal,"signal",-1,null,64);b.addView(signal);
+    LinearLayout explanation=u.panel();explanation.addView(u.title("这两个数为什么不同？",17));u.gap(explanation,8);
+    u.note(explanation,"“系统上报”不是保证正在锁定；C/N₀=0 的条目也可能存在。参与定位采用系统 usedInFix 标记，同一颗卫星只要任一频率参与，就计为一颗参与卫星。\n\n不同时间、遮挡、手机姿态或定位请求状态都会使快照变化。对照时应保持同一位置、同一姿态，并尽量在相近时刻比较同一种口径；数量大不等于定位更准。");b.addView(explanation);
+    button(a,b,"查看设备与定位诊断",()->a.navigate("diagnostics"));
   }
 
   private static void records(MainActivity a) {

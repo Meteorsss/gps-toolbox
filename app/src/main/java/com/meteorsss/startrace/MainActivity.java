@@ -374,6 +374,9 @@ public final class MainActivity extends Activity {
     return String.format(Locale.US, "%.7f, %.7f", l.getLatitude(), l.getLongitude());
   }
 
+  public boolean groupSignals(){return getPreferences(MODE_PRIVATE).getBoolean("groupSignals",true);}
+  public void setGroupSignals(boolean group){getPreferences(MODE_PRIVATE).edit().putBoolean("groupSignals",group).apply();render();}
+
   public boolean gcj() {
     return getPreferences(MODE_PRIVATE).getBoolean("gcj02", false);
   }

@@ -296,10 +296,10 @@ public class AppSmokeTest {
         a.goPage(1);
         assertEquals(30, a.e.uniqueCount(false));
         assertEquals(16, a.e.uniqueCount(true));
-        assertTrue(a.visibleText().contains("20 / 11"));
-        assertTrue(a.visibleText().contains("10 / 5"));
-        assertTrue(a.visibleText().contains("31 条信号记录"));
-        assertTrue(a.visibleText().contains("全部信号明细"));
+        assertTrue(a.visibleText().contains("11 / 20"));
+        assertTrue(a.visibleText().contains("5 / 10"));
+        assertTrue(a.visibleText().contains("16 / 31"));
+        assertTrue(a.visibleText().contains("全部频率信号明细"));
       });
       screenshot("satellite-breakdown-fixture");
       scenario.onActivity(a -> a.e.acceptSatelliteSnapshot(java.util.Collections.emptyList()));
@@ -329,5 +329,26 @@ public class AppSmokeTest {
       scenario.onActivity(a->{Store.Place saved=a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get();assertEquals("停车点",saved.name);assertEquals("地下二层\n靠近电梯",saved.note);assertEquals(original[0].lat,saved.lat,0);assertEquals(original[0].lon,saved.lon,0);assertEquals(created[0],saved.time);try(Store reopened=new Store(a)){assertEquals("停车点",reopened.places().stream().filter(x->x.id==id[0]).findFirst().get().name);}assertTrue(a.visibleText().contains("停车点"));});
       screenshot("edited-place");scenario.recreate();scenario.onActivity(a->{Store.Place saved=a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get();a.app.store.updatePlace(saved.id,saved.name,"");assertEquals("",a.app.store.places().stream().filter(x->x.id==id[0]).findFirst().get().note);a.app.store.deletePlace(id[0]);});
     }finally{if(dialog[0]!=null)InstrumentationRegistry.getInstrumentation().runOnMainSync(()->dialog[0].dismiss());if(id[0]>0)((App)InstrumentationRegistry.getInstrumentation().getTargetContext().getApplicationContext()).store.deletePlace(id[0]);}
+  }
+
+  @Test public void realGnssStatusCallbackPreservesMultiFrequencyEntries()throws Exception{
+    grantLocation();
+    try(ActivityScenario<MainActivity> scenario=ActivityScenario.launch(MainActivity.class)){
+      scenario.onActivity(a->{
+        android.location.GnssStatus.Builder builder=new android.location.GnssStatus.Builder();
+        int[] systems={4,4,4,4,5,5,5},ids={194,194,195,195,6,6,6};
+        float[] frequencies={1575420000f,1176450000f,1575420000f,1176450000f,1561100000f,1575420000f,1176450000f},cn0={35,25,40,0,30,38,0};
+        boolean[] used={true,true,true,false,true,true,false};
+        for(int i=0;i<ids.length;i++)builder.addSatellite(systems[i],ids[i],cn0[i],45,90,true,true,used[i],true,frequencies[i],false,0);
+        android.location.GnssStatus status=builder.build();a.e.acceptGnssStatus(status);
+        assertEquals(7,status.getSatelliteCount());assertEquals(7,a.e.currentSatellites().size());assertEquals(7,a.e.satelliteStats().total.entries());assertEquals(5,a.e.satelliteStats().total.usedEntries());assertEquals(3,a.e.uniqueCount(false));assertEquals(3,a.e.uniqueCount(true));assertEquals(5,a.e.satelliteStats().total.trackedEntries());
+        assertEquals(4,a.e.satelliteStats().system(4).entries());assertEquals(3,a.e.satelliteStats().system(4).usedEntries());assertEquals(2,a.e.satelliteStats().system(4).received());
+        assertEquals(3,a.e.currentSatellites().stream().filter(s->s.system==5&&s.id==6&&s.hasFrequency).count());
+        a.goPage(1);String text=a.visibleText();assertTrue(text.contains("5 / 7"));assertTrue(text.contains("3 / 3"));assertTrue(text.contains("3 / 4"));assertTrue(text.contains("2 / 3"));assertTrue(text.contains("参与定位 / 系统上报"));
+        a.setGroupSignals(false);assertFalse(a.groupSignals());assertEquals(7,a.e.currentSatellites().size());a.setGroupSignals(true);assertTrue(a.groupSignals());
+        a.e.acceptGnssStatus(new android.location.GnssStatus.Builder().build());assertEquals(0,a.e.satelliteStats().total.entries());assertEquals(0,a.e.uniqueCount(false));
+        a.e.satelliteAt=SystemClock.elapsedRealtime()-16000;a.render();assertTrue(a.visibleText().contains("暂无可用快照"));assertTrue(a.visibleText().contains("— / —"));
+      });
+    }
   }
 }
