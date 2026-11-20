@@ -1,0 +1,105 @@
+name: Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+permissions:
+  contents: read
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Restore fixed release signing key
+        env:
+          SIGNING_BUNDLE: ${{ secrets.SIGNING_BUNDLE }}
+        run: |
+          python - <<'PY'
+          import os,json,base64,pathlib
+          data=json.loads(os.environ['SIGNING_BUNDLE'])
+          path=pathlib.Path(os.environ['RUNNER_TEMP'])/'release.p12'
+          path.write_bytes(base64.b64decode(data['keystore']))
+          path.chmod(0o600)
+          print('::add-mask::'+data['password'])
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write(f'SIGNING_STORE_FILE={path}\nSIGNING_PASSWORD={data["password"]}\n')
+          PY
+      - name: Unit tests, Android lint and APK compilation
+        run: gradle --no-daemon :app:testDebugUnitTest :app:lintRelease :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Verify release signature and privacy manifest
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/StarTrace-0.1.0-build-${{ github.run_number }}.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/*.apk | tee dist/signature.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump permissions dist/*.apk | tee dist/permissions.txt
+          if grep -q 'android.permission.INTERNET\|android.permission.ACCESS_BACKGROUND_LOCATION' dist/permissions.txt; then exit 1; fi
+          sha256sum dist/*.apk > dist/SHA256SUMS.txt
+          cp README.md dist/README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StarTrace-installable-apk
+          path: dist/
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emulator-input
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          retention-days: 30
+      - name: Remove decrypted signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"
+  emulator:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: emulator-input
+          path: apks
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 3072
+          script: bash scripts/emulator-test.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Android16-device-tests-and-screenshots
+          path: device-results/
+          retention-days: 30
