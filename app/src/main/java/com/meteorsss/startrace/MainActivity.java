@@ -27,6 +27,7 @@ public final class MainActivity extends Activity {
   private ScrollView scroll;
   private TextView status;
   private final List<Runnable> updates = new ArrayList<>();
+  private final List<CompassView> compassViews = new ArrayList<>();
   private boolean resumed, rendering, pendingRecord;
   private String serviceKey = "";
   private long exportId = -1;
@@ -157,6 +158,9 @@ public final class MainActivity extends Activity {
 
   public void render() {
     rendering = true;
+    for(CompassView view:compassViews)view.setActive(false);
+    compassViews.clear();
+    e.setCompassActive(mode.equals("compass")||mode.equals("guide"));
     updates.clear();
     body.removeAllViews();
     if (!mode.isEmpty()) {
@@ -168,6 +172,7 @@ public final class MainActivity extends Activity {
     refresh();
   }
 
+  public void registerCompass(CompassView view){compassViews.add(view);view.setActive(resumed);watch(view::updateSlowState);}
   public void watch(Runnable update) {
     updates.add(update);
     update.run();
@@ -223,6 +228,7 @@ public final class MainActivity extends Activity {
     resumed = true;
     e.observe(observer);
     e.setVisible(true);
+    for(CompassView view:compassViews)view.setActive(true);
     serviceKey = key();
     app.main.removeCallbacks(tick);
     app.main.post(tick);
@@ -231,6 +237,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onPause() {
     resumed = false;
+    for(CompassView view:compassViews)view.setActive(false);
     app.main.removeCallbacks(tick);
     e.unobserve(observer);
     e.setVisible(false);
@@ -348,22 +355,19 @@ public final class MainActivity extends Activity {
     startService(new Intent(this, TrackService.class).setAction(action));
   }
 
-  public void copy(String text) {
-    getSystemService(android.content.ClipboardManager.class)
-        .setPrimaryClip(ClipData.newPlainText("WGS84 坐标", text));
-    toast("已复制，坐标系 WGS84。");
-  }
-
-  public String coordinates(Location l) {
-    return String.format(Locale.US, "%.7f, %.7f", l.getLatitude(), l.getLongitude());
-  }
-
-  public void copyHere() {
-    if (!e.fresh()) {
-      toast("暂无新鲜位置，未复制过期坐标。");
-      return;
-    }
-    copy(coordinates(e.location) + " (WGS84)");
+  public void copy(String text){copyCoordinate(text,"WGS84");}
+  private void copyCoordinate(String text,String system){getSystemService(android.content.ClipboardManager.class).setPrimaryClip(ClipData.newPlainText(system+" 坐标",text));toast("已复制，坐标系 "+system+"。");}
+  public String coordinates(Location l){return String.format(Locale.US,"%.7f, %.7f",l.getLatitude(),l.getLongitude());}
+  public boolean gcj(){return getPreferences(MODE_PRIVATE).getBoolean("gcj02",false);}
+  public void setCoordinateSystem(boolean gcj){getPreferences(MODE_PRIVATE).edit().putBoolean("gcj02",gcj).apply();render();}
+  public String coordinateLabel(){return gcj()?"GCJ-02":"WGS84";}
+  public void copyHere(){
+    if(!e.fresh()){toast("暂无新鲜位置，未复制过期坐标。");return;}
+    if(gcj()){
+      Gcj02.Coordinate c=Gcj02.fromWgs84(e.location.getLatitude(),e.location.getLongitude());
+      if(!c.converted){toast("当前位置超出近似转换覆盖范围，请切换到 WGS84。");return;}
+      copyCoordinate(String.format(Locale.US,"%.7f, %.7f (GCJ-02 · 离线近似)",c.latitude,c.longitude),"GCJ-02");
+    }else copyCoordinate(coordinates(e.location)+" (WGS84)","WGS84");
   }
 
   public void saveHere() {
@@ -436,16 +440,32 @@ public final class MainActivity extends Activity {
     d.show();
   }
 
+  public AlertDialog editPlaceDialog(Store.Place place){
+    LinearLayout f=form();EditText name=input(f,"地点名称",place.name,false),note=input(f,"备注（可留空）",place.note,false);
+    name.setContentDescription("地点名称");note.setContentDescription("地点备注");
+    name.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(100)});
+    note.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);note.setSingleLine(false);note.setMinLines(2);note.setMaxLines(5);note.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(2000)});
+    u.note(f,"仅修改名称和备注；原始 WGS84 坐标与创建时间保持不变。");
+    AlertDialog dialog=new AlertDialog.Builder(this).setTitle("编辑收藏地点").setView(f).setPositiveButton("保存",null).setNegativeButton("取消",null).create();
+    dialog.setOnShowListener(v->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button->{
+      try{app.store.updatePlace(place.id,name.getText().toString(),note.getText().toString());if(destination!=null&&destination.id==place.id){destination.name=name.getText().toString().trim();destination.note=note.getText().toString();}dialog.dismiss();toast("地点已更新");render();}
+      catch(IllegalArgumentException|IllegalStateException ex){name.setError(ex.getMessage());}
+    }));dialog.show();return dialog;
+  }
+
+  public void thirdPartyNotices(){try(InputStream in=getAssets().open("third-party/eviltransform-LICENSE.txt")){String license=new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);new AlertDialog.Builder(this).setTitle("离线坐标转换 · 第三方许可").setMessage(license).setPositiveButton("关闭",null).show();}catch(IOException ex){toast("无法打开许可文本");}}
+
   public void placeActions(Store.Place p) {
     new AlertDialog.Builder(this)
         .setTitle(p.name)
         .setItems(
-            new String[] {"指向这个地点", "复制 WGS84 坐标", "删除地点"},
+            new String[] {"指向这个地点", "复制 WGS84 坐标", "重命名 / 编辑备注", "删除地点"},
             (d, w) -> {
               if (w == 0) {
                 destination = p;
                 navigate("guide");
               } else if (w == 1) copy(String.format(Locale.US, "%.7f, %.7f (WGS84)", p.lat, p.lon));
+              else if(w==2) editPlaceDialog(p);
               else
                 new AlertDialog.Builder(this)
                     .setTitle("删除地点？")

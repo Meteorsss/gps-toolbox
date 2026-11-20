@@ -75,9 +75,10 @@ public final class Screens {
 
   private static void chart(
       MainActivity a, LinearLayout panel, String kind, long track, Store.Place place, int height) {
-    Charts chart = new Charts(a, kind, track, place);
-    panel.addView(chart, new LinearLayout.LayoutParams(-1, a.u.dp(height)));
-    a.watch(chart::invalidate);
+    if(kind.equals("compass")){
+      CompassView compass=new CompassView(a,place);panel.addView(compass,new LinearLayout.LayoutParams(-1,a.u.dp(height)));a.registerCompass(compass);return;
+    }
+    Charts chart=new Charts(a,kind,track,place);panel.addView(chart,new LinearLayout.LayoutParams(-1,a.u.dp(height)));a.watch(chart::refreshData);
   }
 
   private static void button(MainActivity a, LinearLayout p, String title, Runnable action) {
@@ -95,27 +96,25 @@ public final class Screens {
       u.gap(b, 14);
     }
     LinearLayout hero = u.panel();
-    hero.addView(u.text("HORIZONTAL ACCURACY", 10, u.accent));
+    hero.addView(u.text("当前速度 · LIVE SPEED", 12, u.accent));
     u.gap(hero, 12);
     LinearLayout row = u.row();
-    TextView accuracy = u.title("—", 64);
-    a.bind(
-        accuracy,
-        () -> e.fresh() && e.location.hasAccuracy() ? f("%.1f", e.location.getAccuracy()) : "—");
-    row.addView(accuracy);
-    TextView unit = u.text("  米", 17, u.muted);
+    TextView speed=u.title("—",64);
+    a.bind(speed,()->e.fresh()&&e.location.hasSpeed()?f("%.1f",e.location.getSpeed()*3.6):"—");
+    row.addView(speed);
+    TextView unit=u.text("  km/h",17,u.muted);
     row.addView(unit);
     hero.addView(row);
     u.gap(hero, 9);
-    u.note(hero, "水平精度估计，不代表保证误差。过期位置不作为实时数据。 ");
+    u.note(hero,"卫星速度 · 无有效速度时显示 —，不将未知速度当作 0。 ");
     b.addView(hero);
     u.pair(
         b,
         metric(
             a,
-            "当前速度",
-            () -> e.fresh() && e.location.hasSpeed() ? f("%.1f", e.location.getSpeed() * 3.6) : "—",
-            "km/h · 卫星速度"),
+            "水平精度估计",
+            () -> e.fresh() && e.location.hasAccuracy() ? f("%.1f", e.location.getAccuracy()) : "—",
+            "m · 估计半径，非保证误差"),
         metric(
             a,
             "GNSS 高度",
@@ -134,22 +133,23 @@ public final class Screens {
     LinearLayout coords = u.panel();
     LinearLayout title = u.row();
     title.addView(u.title("当前位置", 16), new LinearLayout.LayoutParams(0, -2, 1));
-    title.addView(u.text("WGS84", 11, u.accent));
-    coords.addView(title);
-    u.gap(coords, 14);
+    title.addView(u.text(a.coordinateLabel(), 11, u.accent));
+    coords.addView(title);u.gap(coords,12);
+    u.pair(coords,u.button("WGS84",!a.gcj(),()->a.setCoordinateSystem(false)),u.button("GCJ-02",a.gcj(),()->a.setCoordinateSystem(true)));
+    u.gap(coords,14);
     TextView coord = u.text("等待定位…", 19, u.text);
     coord.setTypeface(Typeface.MONOSPACE);
     a.bind(
         coord,
         () -> {
           if (!e.fresh()) return "等待有效位置…";
-          Location l = e.location;
-          return a.dms()
-              ? Geo.dms(l.getLatitude(), true) + "\n" + Geo.dms(l.getLongitude(), false)
-              : f("纬度  %.7f°\n经度  %.7f°", l.getLatitude(), l.getLongitude());
+          Location l=e.location;double lat=l.getLatitude(),lon=l.getLongitude();
+          if(a.gcj()){Gcj02.Coordinate converted=Gcj02.fromWgs84(lat,lon);if(!converted.converted)return "超出近似转换范围\n请切换到 WGS84";lat=converted.latitude;lon=converted.longitude;}
+          return a.dms()?Geo.dms(lat,true)+"\n"+Geo.dms(lon,false):f("纬度  %.7f°\n经度  %.7f°",lat,lon);
         });
-    coords.addView(coord);
-    u.gap(coords, 12);
+    coords.addView(coord);u.gap(coords,10);
+    u.note(coords,a.gcj()?"GCJ-02 为离线近似转换，仅适用于大陆相关地图使用场景。覆盖范围采用粗略矩形，不等于国界；边界及港澳台等地区请核对地图来源。":"WGS84 是原始卫星坐标；切换显示不会修改轨迹和收藏地点。");
+    u.gap(coords,12);
     TextView bearing = u.text("", 12, u.muted);
     a.bind(
         bearing,
@@ -159,7 +159,7 @@ public final class Screens {
                 : "运动方向暂无 · 不等于手机朝向");
     coords.addView(bearing);
     u.gap(coords, 15);
-    u.pair(coords, u.button("保存地点", false, a::saveHere), u.button("复制坐标", false, a::copyHere));
+    u.pair(coords, u.button("保存地点", false, a::saveHere), u.button("复制 " + a.coordinateLabel(), false, a::copyHere));
     coord.setOnLongClickListener(v -> {
       a.copyHere();
       return true;
@@ -171,27 +171,21 @@ public final class Screens {
     u.note(b, "纯本地 · 无账号 · 无联网权限\n建议在开阔处等待首次定位；室内可能无法获取卫星位置。");
   }
 
-  private static void satellites(MainActivity a) {
-    Ui u = a.u;
-    LinearLayout b = a.body;
-    u.section(b, "LOOK UP, KNOW MORE", "头顶的卫星");
-    LinearLayout stats = u.panel();
-    TextView counts = u.title("等待卫星", 22);
-    a.bind(counts, () -> a.e.uniqueCount(true) + " 参与定位  /  " + a.e.uniqueCount(false) + " 收到");
-    stats.addView(counts);
-    u.gap(stats, 8);
-    u.note(stats, "按系统 + 卫星编号去重；多频信号不会算作多颗卫星。");
-    chart(a, stats, "sky", -1, null, 300);
-    u.note(stats, "实心 = 参与解算 · 空心 = 未参与\n青绿 GPS · 蓝色北斗 · 粉色 Galileo · 橙色 GLONASS");
-    b.addView(stats);
-    LinearLayout signal = u.panel();
-    signal.addView(u.title("信号明细", 18));
-    u.gap(signal, 7);
-    u.note(signal, "最强 20 条信号 · C/N₀，单位 dB-Hz\n同一颗卫星可能有多条频率记录；频率缺失不推测。");
-    u.gap(signal, 15);
-    chart(a, signal, "signal", -1, null, 685);
-    b.addView(signal);
-    button(a, b, "查看设备与定位诊断", () -> a.navigate("diagnostics"));
+  private static void satellites(MainActivity a){
+    Ui u=a.u;LinearLayout b=a.body;u.section(b,"LOOK UP, KNOW MORE","头顶的卫星");
+    LinearLayout stats=u.panel();TextView counts=u.title("等待卫星",22);
+    a.bind(counts,()->{SatelliteStats.Counts c=a.e.satelliteStats().total;return c.received()+" 收到 / "+c.used()+" 参与定位";});stats.addView(counts);u.gap(stats,8);
+    TextView raw=u.text("",12,u.muted);a.bind(raw,()->{SatelliteStats.Counts c=a.e.satelliteStats().total;return "系统上报 "+c.entries()+" 条信号记录 · "+c.usedEntries()+" 条标记参与定位\n其中 C/N₀ > 0 的独立卫星 "+c.tracked()+" 颗";});stats.addView(raw);u.gap(stats,8);
+    TextView age=u.text("",12,u.accent);a.bind(age,()->a.e.satelliteDataFresh()?"状态更新于 "+Math.max(0,(SystemClock.elapsedRealtime()-a.e.satelliteAt)/1000)+" 秒前":"暂无新鲜卫星状态；0 不代表天空没有卫星");stats.addView(age);
+    u.gap(stats,10);u.note(stats,"收到 = 系统当前上报的独立卫星，按星座 + SVID 去重，包含系统上报但信号为 0 的条目。参与定位 = 同一卫星任一频率被系统标记用于最近定位解算；不是应用自行推算。");b.addView(stats);
+    LinearLayout table=u.panel();table.addView(u.title("按卫星系统统计",18));u.gap(table,12);
+    LinearLayout header=u.row();header.addView(u.text("系统",12,u.muted),new LinearLayout.LayoutParams(0,-2,1));TextView heading=u.text("收到 / 参与定位",12,u.muted);heading.setGravity(Gravity.END);header.addView(heading);table.addView(header);u.gap(table,8);
+    int[] systems={GnssStatus.CONSTELLATION_BEIDOU,GnssStatus.CONSTELLATION_GPS,GnssStatus.CONSTELLATION_GALILEO,GnssStatus.CONSTELLATION_GLONASS,GnssStatus.CONSTELLATION_QZSS,GnssStatus.CONSTELLATION_IRNSS,GnssStatus.CONSTELLATION_SBAS,GnssStatus.CONSTELLATION_UNKNOWN};
+    for(int system:systems){LinearLayout row=u.row();row.setPadding(0,u.dp(9),0,u.dp(9));row.addView(u.text(GnssEngine.systemName(system),15,u.constellation(system)),new LinearLayout.LayoutParams(0,-2,1));TextView number=u.title("0 / 0",18);number.setGravity(Gravity.END);a.bind(number,()->{SatelliteStats.Counts c=a.e.satelliteStats().system(system);return c.received()+" / "+c.used();});row.addView(number);table.addView(row);}b.addView(table);
+    LinearLayout sky=u.panel();chart(a,sky,"sky",-1,null,300);u.note(sky,"实心 = 参与解算 · 空心 = 未参与\n青绿 GPS · 蓝色北斗 · 粉色 Galileo · 橙色 GLONASS");b.addView(sky);
+    LinearLayout signal=u.panel();signal.addView(u.title("全部信号明细",18));u.gap(signal,7);
+    u.note(signal,"按 C/N₀ 排序，单位 dB-Hz；不再限制为 20 条。\n多频记录与独立卫星数量分别统计，不为了对齐其他软件而重复计数。不同软件也可能保留旧快照或采用不同信号口径。");u.gap(signal,15);chart(a,signal,"signal",-1,null,64);b.addView(signal);
+    button(a,b,"查看设备与定位诊断",()->a.navigate("diagnostics"));
   }
 
   private static void records(MainActivity a) {
@@ -350,6 +344,7 @@ public final class Screens {
                               p.lon))
                   : "点击查看操作");
       panel.addView(distance);
+      u.gap(panel,12);u.pair(panel,u.button("指向这里",false,()->{a.destination=p;a.navigate("guide");}),u.button("编辑名称 / 备注",false,()->a.editPlaceDialog(p)));
       panel.setOnClickListener(v -> a.placeActions(p));
       a.body.addView(panel);
     }
@@ -534,6 +529,7 @@ public final class Screens {
     button(a, a.body, u.light ? "切换到深色主题" : "切换到浅色主题", a::theme);
     button(a, a.body, a.dms() ? "坐标显示：度分秒（点击切换）" : "坐标显示：十进制度（点击切换）", a::toggleDms);
     button(a, a.body, "定位与通知权限", a::appSettings);
+    button(a,a.body,"第三方许可 · 离线坐标转换",a::thirdPartyNotices);
     button(
         a,
         a.body,
@@ -558,7 +554,7 @@ public final class Screens {
             + BuildConfig.VERSION_NAME
             + " · build "
             + BuildConfig.VERSION_CODE
-            + "\n目标 Android 16 · GitHub Actions 云端构建\n此版本没有道路底图、离线地图、模拟定位或坐标系转换。");
+            + "\n目标 Android 16 · GitHub Actions 云端构建\n此版本没有道路底图、离线地图或模拟定位。当前位置支持 WGS84 / GCJ-02 显示切换（离线近似转换）；轨迹与收藏始终使用 WGS84。");
     a.body.addView(privacy);
   }
 }

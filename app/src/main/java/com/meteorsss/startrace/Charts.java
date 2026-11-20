@@ -21,11 +21,16 @@ public final class Charts extends View {
     this.kind = kind;
     this.track = track;
     destination = place;
-    setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+    // Keep hardware acceleration enabled.
     setContentDescription(
         kind.equals("sky")
             ? "卫星天空图"
             : kind.equals("signal") ? "卫星信号强度图" : kind.equals("track") ? "无底图轨迹预览" : "指南针");
+  }
+
+  public void refreshData(){
+    if(kind.equals("signal")&&getLayoutParams()!=null){int height=u.dp(Math.max(64,a.e.currentSatellites().size()*34+14));if(getLayoutParams().height!=height){getLayoutParams().height=height;requestLayout();}}
+    invalidate();
   }
 
   private void line(Canvas c, float x, float y, float x2, float y2, int color, float width) {
@@ -68,7 +73,7 @@ public final class Charts extends View {
         track(c);
         break;
       default:
-        compass(c);
+        break;
     }
   }
 
@@ -99,7 +104,7 @@ public final class Charts extends View {
 
   private void signals(Canvas c) {
     List<GnssEngine.Satellite> list = a.e.currentSatellites();
-    int n = Math.min(20, list.size());
+    int n = list.size();
     if (n == 0) {
       label(c, "暂无信号记录", getWidth() / 2f, u.dp(35), u.muted, 14, Paint.Align.CENTER);
       return;
@@ -117,7 +122,7 @@ public final class Charts extends View {
           c,
           left,
           y - 2,
-          left + (right - left) * Math.min(1, s.cn0 / 60),
+          left + (right - left) * (Float.isFinite(s.cn0)?Math.max(0,Math.min(1, s.cn0 / 60)):0),
           y - 2,
           u.constellation(s.system),
           5);
@@ -186,69 +191,4 @@ public final class Charts extends View {
         Paint.Align.CENTER);
   }
 
-  private void compass(Canvas c) {
-    float cx = getWidth() / 2f, cy = getHeight() / 2f, r = Math.min(cx, cy) - u.dp(30);
-    float heading = destination == null ? a.e.magneticHeading : a.e.trueHeading();
-    circle(c, cx, cy, r, u.border, false);
-    if (Float.isNaN(heading)) {
-      label(c, "等待方向数据", cx, cy, u.muted, 14, Paint.Align.CENTER);
-      return;
-    }
-    c.save();
-    c.rotate(-heading, cx, cy);
-    for (int deg = 0; deg < 360; deg += 5) {
-      double angle = Math.toRadians(deg);
-      float inner = r - u.dp(deg % 30 == 0 ? 15 : 7);
-      line(
-          c,
-          cx + (float) Math.sin(angle) * inner,
-          cy - (float) Math.cos(angle) * inner,
-          cx + (float) Math.sin(angle) * r,
-          cy - (float) Math.cos(angle) * r,
-          deg == 0 ? u.accent : u.border,
-          deg % 30 == 0 ? 2 : 1);
-    }
-    String[] directions = {"N", "E", "S", "W"};
-    for (int i = 0; i < 4; i++) {
-      double v = Math.toRadians(i * 90);
-      label(
-          c,
-          directions[i],
-          cx + (float) Math.sin(v) * (r - u.dp(33)),
-          cy - (float) Math.cos(v) * (r - u.dp(33)) + u.dp(5),
-          i == 0 ? u.accent : u.text,
-          16,
-          Paint.Align.CENTER);
-    }
-    c.restore();
-    float arrow = 0;
-    if (destination != null && a.e.fresh())
-      arrow =
-          (float)
-              (Geo.bearing(
-                      a.e.location.getLatitude(),
-                      a.e.location.getLongitude(),
-                      destination.lat,
-                      destination.lon)
-                  - heading);
-    c.save();
-    c.rotate(arrow, cx, cy);
-    Path path = new Path();
-    path.moveTo(cx, cy - r * .48f);
-    path.lineTo(cx - u.dp(14), cy + u.dp(22));
-    path.lineTo(cx, cy + u.dp(12));
-    path.lineTo(cx + u.dp(14), cy + u.dp(22));
-    path.close();
-    p.setColor(u.accent);
-    c.drawPath(path, p);
-    c.restore();
-    label(
-        c,
-        String.format(Locale.US, "%.0f°", heading),
-        cx,
-        cy + r * .62f,
-        u.text,
-        24,
-        Paint.Align.CENTER);
-  }
 }

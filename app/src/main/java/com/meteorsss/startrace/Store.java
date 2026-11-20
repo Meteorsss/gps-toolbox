@@ -207,6 +207,14 @@ public final class Store extends SQLiteOpenHelper {
     return list;
   }
 
+  public synchronized void updatePlace(long id,String name,String note){
+    String title=name==null?"":name.trim();
+    if(title.isEmpty())throw new IllegalArgumentException("地点名称不能为空");
+    if(title.length()>100||note==null||note.length()>2000)throw new IllegalArgumentException("名称最多100字，备注最多2000字");
+    ContentValues values=new ContentValues();values.put("name",title);values.put("note",note);
+    if(getWritableDatabase().update("places",values,"id=?",new String[]{Long.toString(id)})!=1)throw new IllegalStateException("地点已不存在，请返回列表刷新");
+  }
+
   public synchronized void deletePlace(long id) {
     getWritableDatabase().delete("places", "id=?", new String[] {"" + id});
   }
