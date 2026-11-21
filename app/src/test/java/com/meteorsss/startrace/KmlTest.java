@@ -171,9 +171,14 @@ public class KmlTest {
 
   @Test
   public void endpointsUseFirstAndLastValidPointsNotRejectedEdges() throws Exception {
-    String xml = export("endpoints", point(2, 3, 0, 0, false), point(31, 121, 1000, 0, true),
-        point(31.1, 121.1, 2000, 0, true), point(31.2, 121.2, 3000, 1, true),
-        point(5, 6, 4000, 1, false));
+    String xml =
+        export(
+            "endpoints",
+            point(2, 3, 0, 0, false),
+            point(31, 121, 1000, 0, true),
+            point(31.1, 121.1, 2000, 0, true),
+            point(31.2, 121.2, 3000, 1, true),
+            point(5, 6, 4000, 1, false));
     Document d = parse(xml);
     NodeList marks = d.getElementsByTagNameNS(Kml.NAMESPACE, "Placemark");
     int endpoints = 0;
@@ -182,9 +187,12 @@ public class KmlTest {
       if (!mark.getAttribute("id").startsWith("track-")) continue;
       endpoints++;
       String expected = mark.getAttribute("id").equals("track-start") ? "起点" : "终点";
-      assertEquals(expected, mark.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
-      String coord = mark.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates").item(0).getTextContent().trim();
-      assertEquals(expected.equals("起点") ? "121.00000000,31.00000000" : "121.20000000,31.20000000", coord);
+      assertEquals(
+          expected, mark.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
+      String coord =
+          mark.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates").item(0).getTextContent().trim();
+      assertEquals(
+          expected.equals("起点") ? "121.00000000,31.00000000" : "121.20000000,31.20000000", coord);
       assertEquals(1, mark.getElementsByTagNameNS(Kml.NAMESPACE, "IconStyle").getLength());
       assertEquals(0, mark.getElementsByTagNameNS(Kml.NAMESPACE, "href").getLength());
     }

@@ -729,7 +729,9 @@ public final class MapActivity extends Activity {
     out.putLong("display_track", displayTrack);
   }
 
-  boolean lightForTests() { return ui.light; }
+  boolean lightForTests() {
+    return ui.light;
+  }
 
   double cameraZoomForTests() {
     return map == null ? 0 : map.getCameraPosition().zoom;

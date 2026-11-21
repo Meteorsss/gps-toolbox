@@ -26,7 +26,9 @@ public final class TrackService extends Service {
     return analytics.finish(distance, duration());
   }
 
-  public int intervalSeconds() { return intervalSeconds; }
+  public int intervalSeconds() {
+    return intervalSeconds;
+  }
 
   public void setIntervalSeconds(int seconds) {
     int value = RecordingCadence.sanitize(seconds);
@@ -48,7 +50,9 @@ public final class TrackService extends Service {
     resumed = SystemClock.elapsedRealtime();
   }
 
-  void fixForTests(Location location) { onFix(location); }
+  void fixForTests(Location location) {
+    onFix(location);
+  }
 
   public long duration() {
     return accumulated + (!paused && resumed > 0 ? SystemClock.elapsedRealtime() - resumed : 0);

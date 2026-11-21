@@ -100,13 +100,25 @@ public final class Kml {
       line = false;
     }
 
-    private void endpoint(String id, String name, String color, TrackPoint point) throws IOException {
-      out.write("<Placemark id=\"" + id + "\"><name>" + name
-          + "</name><description>有效轨迹的" + name + "；WGS84，贴地显示。</description>"
-          + "<Style><IconStyle><color>" + color + "</color><scale>1.2</scale></IconStyle>"
-          + "<LabelStyle><color>" + color + "</color><scale>1.1</scale></LabelStyle></Style>"
-          + "<Point><altitudeMode>clampToGround</altitudeMode><coordinates>"
-          + coordinate(point) + "</coordinates></Point></Placemark>\n");
+    private void endpoint(String id, String name, String color, TrackPoint point)
+        throws IOException {
+      out.write(
+          "<Placemark id=\""
+              + id
+              + "\"><name>"
+              + name
+              + "</name><description>有效轨迹的"
+              + name
+              + "；WGS84，贴地显示。</description>"
+              + "<Style><IconStyle><color>"
+              + color
+              + "</color><scale>1.2</scale></IconStyle>"
+              + "<LabelStyle><color>"
+              + color
+              + "</color><scale>1.1</scale></LabelStyle></Style>"
+              + "<Point><altitudeMode>clampToGround</altitudeMode><coordinates>"
+              + coordinate(point)
+              + "</coordinates></Point></Placemark>\n");
     }
 
     public void finish() throws IOException {
