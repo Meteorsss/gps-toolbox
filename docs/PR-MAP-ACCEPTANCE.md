@@ -67,3 +67,10 @@
 - Large speed-view assertions cover current speed centering, max/average/distance, pause state, updates and clearing stale values without a recorder; screenshot uses synthetic measurements only.
 - Downloaded APK SHA-256 `5b3c0c8cfba2fab4b21394ceffa17cd2d7e1ded0b78f8cf6ec7ea5ba2e89b9a6`; ARM64-only ELF64 AArch64 and fixed certificate matching previous releases verified; versionCode=21, versionName=0.2.2-pr.
 - No actual user Google account import or Redmi K70 field validation claimed; old KML must be re-exported to gain endpoints. PR remains unmerged and main unchanged; owner requested a public Pre-release.
+
+## Final 0.2.2-pr signing and theme-contrast verification
+
+- Signed ARM64 build #26: https://github.com/Meteorsss/gps-toolbox/actions/runs/44880210016
+- Source `1ddb647ffa02b98e055705a82ae2c01b73a38487`. Native manual light/dark dialogs and system-bar appearance now match the selected mode; regression awaits actual system configuration and a composed screenshot frame.
+- 93 unit tests and 19 Android 16 instrumentation tests passed, zero failed/skipped; downloaded KML endpoints and screenshots checked. APK only contains ELF64 AArch64 native libraries and matches the previous release signing certificate.
+- APK SHA-256 `1a146a33247b1e7052311e9142e3b6694c123dd79409e88e70e6bf59f2af8c6a`. This is the final 0.2.2-pr delivery; earlier #21/#24 builds are superseded, not published as new releases. User field/import testing remains required.
