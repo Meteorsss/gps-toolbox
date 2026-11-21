@@ -69,6 +69,7 @@ public final class MapActivity extends Activity {
 
   @Override
   public void onCreate(Bundle state) {
+    setTheme(Preferences.light(this) ? R.style.AppThemeLight : R.style.AppTheme);
     super.onCreate(state);
     app = (App) getApplication();
     ui = new Ui(this, Preferences.light(this));
@@ -147,6 +148,7 @@ public final class MapActivity extends Activity {
     controls.setPadding(ui.dp(10), 0, ui.dp(10), ui.dp(8));
     root.addView(controls);
     setContentView(root);
+    Preferences.applyWindow(this, ui.light);
     root.requestApplyInsets();
     getOnBackInvokedDispatcher()
         .registerOnBackInvokedCallback(
@@ -676,6 +678,7 @@ public final class MapActivity extends Activity {
   protected void onResume() {
     super.onResume();
     resumed = true;
+    Preferences.applyWindow(this, ui.light);
     app.engine.setCompassActive(false);
     app.engine.observe(fixObserver);
     app.engine.setVisible(true);

@@ -1,6 +1,8 @@
 package com.meteorsss.startrace;
 
 import android.content.*;
+import android.app.Activity;
+import android.view.WindowInsetsController;
 import android.content.res.Configuration;
 
 /** Shared by MainActivity, map and recording service; retains existing preference keys. */
@@ -22,6 +24,16 @@ public final class Preferences {
         (c.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
             == Configuration.UI_MODE_NIGHT_YES;
     return theme(c).isLight(dark);
+  }
+
+  public static void applyWindow(Activity activity, boolean light) {
+    int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+    activity.getWindow().getInsetsController().setSystemBarsAppearance(light ? mask : 0, mask);
+    activity.getWindow().getDecorView().post(() -> {
+      if (!activity.isDestroyed())
+        activity.getWindow().getInsetsController().setSystemBarsAppearance(light ? mask : 0, mask);
+    });
   }
 
   public static void theme(Context c, ThemeMode mode) {

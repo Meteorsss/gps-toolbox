@@ -39,6 +39,7 @@ public final class MainActivity extends Activity {
 
   @Override
   public void onCreate(Bundle saved) {
+    setTheme(Preferences.light(this) ? R.style.AppThemeLight : R.style.AppTheme);
     super.onCreate(saved);
     app = (App) getApplication();
     e = app.engine;
@@ -71,6 +72,7 @@ public final class MainActivity extends Activity {
 
   public void buildRoot() {
     boolean light = Preferences.light(this);
+    setTheme(light ? R.style.AppThemeLight : R.style.AppTheme);
     u = new Ui(this, light);
     getWindow().setDecorFitsSystemWindows(false);
     getWindow().setNavigationBarContrastEnforced(false);
@@ -120,15 +122,7 @@ public final class MainActivity extends Activity {
     root.addView(nav);
     setContentView(root);
     root.requestApplyInsets();
-    getWindow()
-        .getInsetsController()
-        .setSystemBarsAppearance(
-            light
-                ? WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-                : 0,
-            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
+    Preferences.applyWindow(this, light);
     render();
   }
 
@@ -231,6 +225,7 @@ public final class MainActivity extends Activity {
   protected void onResume() {
     super.onResume();
     resumed = true;
+    Preferences.applyWindow(this, u.light);
     e.observe(observer);
     e.setVisible(true);
     for (CompassView view : compassViews) view.setActive(true);

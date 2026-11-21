@@ -48,7 +48,9 @@ public class RecordingOptionsTest {
     long end = SystemClock.elapsedRealtime() + 15000;
     boolean[] matches = {false};
     while (SystemClock.elapsedRealtime() < end) {
-      scenario.onActivity(a -> matches[0] = a.u.light == light);
+      scenario.onActivity(a -> matches[0] = a.u.light == light
+          && ((a.getWindow().getInsetsController().getSystemBarsAppearance()
+              & android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS) != 0) == light);
       if (matches[0]) return;
       SystemClock.sleep(100);
     }
