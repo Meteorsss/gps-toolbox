@@ -7,6 +7,8 @@ import android.database.*;
 import android.database.sqlite.*;
 import android.graphics.Bitmap;
 import android.os.*;
+import android.view.*;
+import android.widget.TextView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -153,6 +155,89 @@ public class MapFeatureTest {
       assertTrue(stream.toString("UTF-8").contains("msl_altitude_m"));
       assertTrue(app.store.analyze(id, 19000, 280).msl);
     } finally {
+      app.store.delete(id);
+    }
+  }
+
+
+  private TextView button(View view, String label) {
+    if (view instanceof TextView && label.contentEquals(((TextView) view).getText()))
+      return (TextView) view;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) {
+        TextView found = button(group.getChildAt(i), label);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
+  @Test
+  public void historicalMapRecenterRemainsLiveAfterRecreation() {
+    InstrumentationRegistry.getInstrumentation().getUiAutomation()
+        .grantRuntimePermission(context().getPackageName(), android.Manifest.permission.ACCESS_COARSE_LOCATION);
+    InstrumentationRegistry.getInstrumentation().getUiAutomation()
+        .grantRuntimePermission(context().getPackageName(), android.Manifest.permission.ACCESS_FINE_LOCATION);
+    MapPolicy.allow(context(), false);
+    long id = fixture();
+    try (ActivityScenario<MapActivity> scenario = ActivityScenario.launch(
+        new Intent(context(), MapActivity.class).putExtra("track_id", id)
+            .putExtra("test_local_style", true))) {
+      await(scenario, a -> a.readyForTests() && a.trackPointsForTests() == 20, "historical map");
+      scenario.onActivity(a -> {
+        assertFalse(a.followingForTests());
+        TextView recenter = button(a.getWindow().getDecorView(), "回到当前位置");
+        assertNotNull(recenter);
+        recenter.performClick();
+        assertTrue(a.followingForTests());
+      });
+      scenario.recreate();
+      await(scenario, a -> a.readyForTests() && a.trackPointsForTests() == 20, "recentered map recreated");
+      scenario.onActivity(a -> assertTrue(a.followingForTests()));
+      scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);
+      scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);
+      scenario.onActivity(a -> assertTrue(a.followingForTests()));
+      assertFalse(MapPolicy.allowed(context()));
+    } finally {
+      ((App) context().getApplicationContext()).store.delete(id);
+    }
+  }
+
+  @Test
+  public void liveMapStatisticsRefreshAndSettleAfterRecordingStops() {
+    MapPolicy.allow(context(), false);
+    App app = (App) context().getApplicationContext();
+    long id = fixture();
+    TrackService previous = TrackService.active;
+    // Synthetic in-memory recorder state only: no real GPS recording or user coordinates.
+    TrackService live = new TrackService();
+    live.trackId = id;
+    live.paused = true;
+    live.distance = 100;
+    InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> TrackService.active = live);
+    try (ActivityScenario<MapActivity> scenario = ActivityScenario.launch(
+        new Intent(context(), MapActivity.class).putExtra("test_local_style", true))) {
+      await(scenario, a -> a.readyForTests() && a.trackPointsForTests() == 20, "live map");
+      scenario.onActivity(a -> {
+        TextView statistics = button(a.getWindow().getDecorView(), "详细统计");
+        assertNotNull(statistics);
+        statistics.performClick();
+        assertTrue(a.statisticsForTests().contains(Geo.meters(100)));
+        live.distance = 200;
+      });
+      await(scenario, a -> a.statisticsForTests().contains(Geo.meters(200)), "statistics update without reopening");
+      scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);
+      InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> live.distance = 300);
+      scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);
+      await(scenario, a -> a.statisticsForTests().contains(Geo.meters(300)), "statistics refresh on resume");
+      app.store.update(id, 19000, 450, "finished");
+      scenario.onActivity(a -> TrackService.active = null);
+      await(scenario, a -> a.statisticsForTests().contains(Geo.meters(450)), "final persisted statistics");
+      scenario.onActivity(MapActivity::closeStatisticsForTests);
+      await(scenario, a -> a.statisticsForTests().isEmpty(), "statistics dialog dismissed");
+    } finally {
+      InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> TrackService.active = previous);
       app.store.delete(id);
     }
   }

@@ -6,7 +6,7 @@
 
 ## 安装
 
-打开 Actions → Android APK → 最新成功的运行 → Artifacts → `StarTrace-installable-apk`。解压后安装 `.apk`。仓库保持公开；Release 中的 APK 可直接下载。Actions 产物下载可能仍需登录 GitHub。
+本 PR 预览版：打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-PR-preview-apk`。解压后安装 `StarTrace-0.2.0-pr-build-*.apk`，这是固定发布签名、可覆盖安装的预览包。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 使用临时调试签名，不用于覆盖正式版本；不要为安装调试包而卸载丢失本地数据。Actions 产物下载可能仍需登录 GitHub。仓库保持公开；已有 Release 是旧稳定版，不是本次地图 PR 预览，不新建 Release。
 
 APK 使用可信分支手动构建时使用固定的个人发布密钥签名，不是每次变化的临时 debug 签名。包名 `com.meteorsss.startrace`。请保留同一仓库签名 Secret，后续正常覆盖更新；卸载会删除本地记录。
 

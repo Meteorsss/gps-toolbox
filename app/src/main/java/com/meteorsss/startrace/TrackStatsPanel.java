@@ -61,6 +61,10 @@ public final class TrackStatsPanel extends LinearLayout {
     });
   }
 
+  String valuesForTests() {
+    return values.getText().toString();
+  }
+
   private String number(double n, String suffix) {
     return Double.isFinite(n) ? String.format(Locale.US, "%.1f%s", n, suffix) : "—";
   }

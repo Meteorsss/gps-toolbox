@@ -9,3 +9,6 @@
 - Check old track altitude metrics show unknown when vertical accuracy unavailable. Flat-ground walk should not create large climb; hill ascent/descent should be treated as filtered GNSS estimates, not ground truth.
 - Check MSL vs ellipsoid label, current speed vs overall/moving averages, highest speed and raw point validity. Unknown time must not be silently counted as stationary.
 - Verify location permission revocation, orientation change, background/foreground and closing the map do not crash or restart recording.
+
+- While recording, leave map detailed statistics open; verify values refresh without reopening, including after returning from background and finishing recording.
+- From a historical track, recenter to current location; rotate or change basemap, and verify live-follow mode remains selected without auto-fitting the old track again.

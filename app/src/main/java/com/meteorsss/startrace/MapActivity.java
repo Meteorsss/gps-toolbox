@@ -30,6 +30,8 @@ public final class MapActivity extends Activity {
   private FrameLayout holder;
   private TextView mapStatus, fixStatus, summary, followButton, pauseButton;
   private LinearLayout controls;
+  private TrackStatsPanel statisticsPanel;
+  private AlertDialog statisticsDialog;
   private boolean started,
       resumed,
       destroyed,
@@ -60,6 +62,7 @@ public final class MapActivity extends Activity {
           updatePosition();
           updateControls();
           loadTrack();
+          if (statisticsPanel != null) statisticsPanel.refresh();
           handler.postDelayed(this, 2500);
         }
       };
@@ -72,8 +75,11 @@ public final class MapActivity extends Activity {
         new Ui(this, getSharedPreferences("MainActivity", MODE_PRIVATE).getBoolean("light", false));
     requestedTrack = getIntent().getLongExtra("track_id", -1);
     displayTrack = requestedTrack;
+    following = requestedTrack < 0;
     mapState = state == null ? null : state.getBundle("map_state");
     if (state != null) {
+      requestedTrack = state.getLong("requested_track", requestedTrack);
+      fitPending = state.getBoolean("fit_pending", true);
       following = state.getBoolean("following", true);
       displayTrack = state.getLong("display_track", requestedTrack);
     }
@@ -259,6 +265,7 @@ public final class MapActivity extends Activity {
           style = s;
           addOverlays();
           mapStatus.setText(online ? "在线底图已载入 · 瓦片按视野加载" : "仅本地轨迹 · 无道路底图 · 不联网");
+          lastFixElapsed = 0;
           updatePosition();
           drawTrack();
         });
@@ -284,6 +291,7 @@ public final class MapActivity extends Activity {
           if (destroyed) return;
           style = s;
           addOverlays();
+          lastFixElapsed = 0;
           updatePosition();
           drawTrack();
         });
@@ -398,6 +406,7 @@ public final class MapActivity extends Activity {
       startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
     }
     updatePosition();
+    loadTrack();
   }
 
   private void updateFollowLabel() {
@@ -578,15 +587,25 @@ public final class MapActivity extends Activity {
       toast("开始记录后可查看路程统计");
       return;
     }
+    if (statisticsDialog != null) statisticsDialog.dismiss();
     ScrollView scroll = new ScrollView(this);
     TrackStatsPanel panel = new TrackStatsPanel(this, ui, displayTrack);
     panel.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(16));
     scroll.addView(panel);
-    new AlertDialog.Builder(this)
+    statisticsPanel = panel;
+    AlertDialog dialog = new AlertDialog.Builder(this)
         .setTitle("本地轨迹统计")
         .setView(scroll)
         .setPositiveButton("关闭", null)
-        .show();
+        .create();
+    statisticsDialog = dialog;
+    dialog.setOnDismissListener(d -> {
+      if (statisticsDialog == dialog) {
+        statisticsPanel = null;
+        statisticsDialog = null;
+      }
+    });
+    dialog.show();
   }
 
   private void startRecord() {
@@ -683,6 +702,7 @@ public final class MapActivity extends Activity {
   @Override
   protected void onDestroy() {
     destroyed = true;
+    if (statisticsDialog != null) statisticsDialog.dismiss();
     loadSequence++;
     handler.removeCallbacksAndMessages(null);
     if (mapView != null) mapView.onDestroy();
@@ -703,7 +723,21 @@ public final class MapActivity extends Activity {
     out.putBundle("map_state", state);
     out.putBoolean("map_chosen", mapView != null);
     out.putBoolean("following", following);
+    out.putLong("requested_track", requestedTrack);
+    out.putBoolean("fit_pending", fitPending);
     out.putLong("display_track", displayTrack);
+  }
+
+  boolean followingForTests() {
+    return following && requestedTrack < 0;
+  }
+
+  String statisticsForTests() {
+    return statisticsPanel == null ? "" : statisticsPanel.valuesForTests();
+  }
+
+  void closeStatisticsForTests() {
+    if (statisticsDialog != null) statisticsDialog.dismiss();
   }
 
   boolean readyForTests() {
