@@ -12,3 +12,14 @@
 
 - While recording, leave map detailed statistics open; verify values refresh without reopening, including after returning from background and finishing recording.
 - From a historical track, recenter to current location; rotate or change basemap, and verify live-follow mode remains selected without auto-fitting the old track again.
+
+## Cloud verification and preview delivery (2026-11-21)
+
+- Signed preview build #12: https://github.com/Meteorsss/gps-toolbox/actions/runs/44849840678
+- APK source commit: `cfe21c2a6cd1550f76aa4d90f60e301f77b1edf1`.
+- 71 unit tests, 13 Android 16 instrumentation tests, release lint and APK signature/permission verification passed. No tests failed or were skipped.
+- Regressions include live map statistics updating while open, pause/background/resume and final persisted statistics, recentered live mode across recreation, and retained history-map camera zoom.
+- Artifact: `StarTrace-PR-preview-apk`; install `StarTrace-0.2.0-pr-build-12.apk`, not a PR debug APK. Existing release signing certificate is retained.
+- APK SHA-256: `5a1cfe3ec5a3fd7199e16642c4e924ebbc0f82efe2507df7e2c010a017a15780`.
+- All fixtures and screenshots use synthetic data. Cloud emulator results do not replace Redmi K70 / HyperOS 3 field acceptance, mobile-network availability or battery testing.
+- PR stays open and unmerged, main unchanged, repository public, no new Release.
