@@ -61,7 +61,8 @@ public class SpeedSessionFeatureTest {
 
   private void sample(ActivityScenario<MainActivity> scenario, double latitude, float speed) {
     // Activity recreation/resume may have registered the provider again; isolate each fixture.
-    scenario.onActivity(a -> a.getSystemService(android.location.LocationManager.class).removeUpdates(a.e));
+    scenario.onActivity(
+        a -> a.getSystemService(android.location.LocationManager.class).removeUpdates(a.e));
     SystemClock.sleep(1050);
     scenario.onActivity(a -> {
       a.e.onLocationChanged(fix(latitude, speed));
