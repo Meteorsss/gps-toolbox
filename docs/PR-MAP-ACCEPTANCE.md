@@ -23,3 +23,10 @@
 - APK SHA-256: `5a1cfe3ec5a3fd7199e16642c4e924ebbc0f82efe2507df7e2c010a017a15780`.
 - All fixtures and screenshots use synthetic data. Cloud emulator results do not replace Redmi K70 / HyperOS 3 field acceptance, mobile-network availability or battery testing.
 - PR stays open and unmerged, main unchanged, repository public, no new Release.
+
+## ARM64 Pre-release requested by owner (2026-11-21)
+
+- The owner explicitly requested publishing this version as a GitHub Pre-release, like the preceding three releases. The earlier no-new-Release restriction is superseded for this delivery only.
+- Release APK includes only `arm64-v8a`; cloud verification checks every bundled native library is ELF64 AArch64, with matching APK badging and fixed signing certificate.
+- Debug builds retain emulator-compatible ABIs for Android 16 tests and are not uploaded as Release assets.
+- Publishing targets the verified feature-branch commit; the PR remains unmerged, main unchanged and repository public.

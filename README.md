@@ -6,7 +6,9 @@
 
 ## 安装
 
-本 PR 预览版：打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-PR-preview-apk`。解压后安装 `StarTrace-0.2.0-pr-build-*.apk`，这是固定发布签名、可覆盖安装的预览包。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 使用临时调试签名，不用于覆盖正式版本；不要为安装调试包而卸载丢失本地数据。Actions 产物下载可能仍需登录 GitHub。仓库保持公开；已有 Release 是旧稳定版，不是本次地图 PR 预览，不新建 Release。
+本 PR 预览版仅提供 **ARM64（arm64-v8a）** 固定发布签名包，可在红米 K70 上覆盖安装。经所有者明确要求，本次也发布到 [GitHub Releases](https://github.com/Meteorsss/gps-toolbox/releases)，标记为 **Pre-release**，不合并 PR 或修改 main。
+
+优先在对应 Pre-release 的 Assets 中下载 `StarTrace-0.2.0-pr-arm64-v8a-build-*.apk`。也可打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-PR-preview-apk`，解压获得同一签名 APK。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 仅用于测试，不上传 Release，也不用于覆盖正式签名版本；不要为安装调试包而卸载丢失本地数据。仓库保持公开，Release 附件可直接下载；Actions 产物下载可能仍需登录 GitHub。
 
 APK 使用可信分支手动构建时使用固定的个人发布密钥签名，不是每次变化的临时 debug 签名。包名 `com.meteorsss.startrace`。请保留同一仓库签名 Secret，后续正常覆盖更新；卸载会删除本地记录。
 
@@ -99,6 +101,6 @@ MapLibre Native Android 13.5.4 + OpenFreeMap Liberty；免注册、免API Key。
 
 ### 数据与测试包
 数据库v1→v2只新增可空高度/速度精度字段，不清空历史或收藏。CSV追加这些字段；旧GPX格式仍保留椭球高扩展，不伪装海拔。升级到PR版后不建议降级数据库，安装前导出重要数据。
-PR构建不读取发布签名密钥；仅受信任功能分支手动workflow_dispatch使用原签名生成可覆盖安装的PR预览APK。所有产物来自Actions，**不创建Release，不合并main，不修改仓库可见性**。
+PR构建不读取发布签名密钥；仅受信任功能分支手动workflow_dispatch使用原签名生成可覆盖安装的PR预览APK。所有产物来自Actions。按所有者要求提供纯ARM64签名APK并发布为 **Pre-release**；**不合并main，不修改仓库可见性**。调试测试包保留模拟器所需架构，不作为发布附件。
 
 测试：纯Java统计/几何单测、SQLite原版本迁移、MapLibre无网络样式/轨迹/生命周期、OpenFreeMap在线底图加载。在线网络可用性仅代表GitHub运行器，不能保证你的移动网络或红米渲染/耗电表现。所有测试位置为合成样例，不使用用户位置。
