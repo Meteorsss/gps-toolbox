@@ -50,6 +50,9 @@ public class SpeedSessionFeatureTest {
 
   private void enter(ActivityScenario<MainActivity> scenario) {
     scenario.onActivity(a -> {
+      // These tests deliver synthetic fixes through the production callback; do not mix in the
+      // emulator GPS provider's own stationary coordinates while exercising realistic jump filters.
+      a.getSystemService(android.location.LocationManager.class).removeUpdates(a.e);
       a.e.location = null;
       a.navigate("speed");
       assertNotNull(a.speedStats());
@@ -57,6 +60,8 @@ public class SpeedSessionFeatureTest {
   }
 
   private void sample(ActivityScenario<MainActivity> scenario, double latitude, float speed) {
+    // Activity recreation/resume may have registered the provider again; isolate each fixture.
+    scenario.onActivity(a -> a.getSystemService(android.location.LocationManager.class).removeUpdates(a.e));
     SystemClock.sleep(1050);
     scenario.onActivity(a -> {
       a.e.onLocationChanged(fix(latitude, speed));
