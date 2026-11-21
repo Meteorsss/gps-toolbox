@@ -45,7 +45,8 @@ public class RecordingOptionsTest {
     }
   }
 
-  private void awaitTheme(ActivityScenario<MainActivity> scenario, boolean light, boolean systemDark) {
+  private void awaitTheme(
+      ActivityScenario<MainActivity> scenario, boolean light, boolean systemDark) {
     long end = SystemClock.elapsedRealtime() + 15000;
     boolean[] matches = {false};
     while (SystemClock.elapsedRealtime() < end) {
@@ -53,8 +54,9 @@ public class RecordingOptionsTest {
           matches[0] =
               a.u.light == light
                   && ((a.getResources().getConfiguration().uiMode
-                      & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                      == android.content.res.Configuration.UI_MODE_NIGHT_YES) == systemDark
+                              & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                          == android.content.res.Configuration.UI_MODE_NIGHT_YES)
+                      == systemDark
                   && ((a.getWindow().getInsetsController().getSystemBarsAppearance()
                               & android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
                           != 0)
