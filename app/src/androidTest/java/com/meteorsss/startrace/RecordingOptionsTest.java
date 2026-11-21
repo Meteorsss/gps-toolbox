@@ -147,7 +147,9 @@ public class RecordingOptionsTest {
         TextView stats = a.body.findViewWithTag("large-speed-session-stats");
         TextView current = a.body.findViewWithTag("large-speed-current");
         TextView mps = a.body.findViewWithTag("large-speed-current-mps");
-        assertNotNull(stats); assertNotNull(current); assertNotNull(mps);
+        assertNotNull(stats);
+        assertNotNull(current);
+        assertNotNull(mps);
         assertEquals(Gravity.CENTER, current.getGravity());
         assertEquals(0, a.speedStats().distance, 0);
         assertTrue(stats.getText().toString().contains("本次测速"));
@@ -168,7 +170,8 @@ public class RecordingOptionsTest {
         assertNotNull(a.speedStats());
       });
     } finally {
-      InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> TrackService.active = previous);
+      InstrumentationRegistry.getInstrumentation()
+          .runOnMainSync(() -> TrackService.active = previous);
       app.store.delete(id);
     }
   }

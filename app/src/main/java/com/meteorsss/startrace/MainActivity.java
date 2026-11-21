@@ -215,13 +215,23 @@ public final class MainActivity extends Activity {
       return;
     }
     Location l = e.location;
-    speedSession.add(new TrackPoint(l.getLatitude(), l.getLongitude(), Double.NaN,
-        l.hasAccuracy() ? l.getAccuracy() : Double.NaN,
-        l.hasSpeed() ? l.getSpeed() : Double.NaN, l.getTime(),
-        l.getElapsedRealtimeNanos() / 1000000L, 0, true,
-        Double.NaN, Double.NaN, Double.NaN,
-        l.hasSpeedAccuracy() ? l.getSpeedAccuracyMetersPerSecond() : Double.NaN),
-        l.isMock(), SystemClock.elapsedRealtime());
+    speedSession.add(
+        new TrackPoint(
+            l.getLatitude(),
+            l.getLongitude(),
+            Double.NaN,
+            l.hasAccuracy() ? l.getAccuracy() : Double.NaN,
+            l.hasSpeed() ? l.getSpeed() : Double.NaN,
+            l.getTime(),
+            l.getElapsedRealtimeNanos() / 1000000L,
+            0,
+            true,
+            Double.NaN,
+            Double.NaN,
+            Double.NaN,
+            l.hasSpeedAccuracy() ? l.getSpeedAccuracyMetersPerSecond() : Double.NaN),
+        l.isMock(),
+        SystemClock.elapsedRealtime());
   }
 
   SpeedSession.Snapshot speedStats() {

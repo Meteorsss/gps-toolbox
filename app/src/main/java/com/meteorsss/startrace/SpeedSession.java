@@ -1,13 +1,16 @@
 package com.meteorsss.startrace;
 
-/** In-memory foreground speedometer session: no recorder, database, saved-point cadence or history. */
+/**
+ * In-memory foreground speedometer session: no recorder, database, saved-point cadence or history.
+ */
 public final class SpeedSession {
   public static final class Snapshot {
     public final double distance, maxMps, averageMps;
     public final long activeMs;
     public final int validPoints;
 
-    private Snapshot(double distance, double maxMps, double averageMps, long activeMs, int validPoints) {
+    private Snapshot(
+        double distance, double maxMps, double averageMps, long activeMs, int validPoints) {
       this.distance = distance;
       this.maxMps = maxMps;
       this.averageMps = averageMps;
@@ -33,7 +36,9 @@ public final class SpeedSession {
       return;
     }
     lastElapsed = p.elapsed;
-    if (mock || !p.accepted || !TrackFilter.usable(p, nowElapsed)
+    if (mock
+        || !p.accepted
+        || !TrackFilter.usable(p, nowElapsed)
         || !TrackFilter.plausible(previous, p)) {
       disconnect();
       return;
@@ -44,7 +49,8 @@ public final class SpeedSession {
     if (anchor == null || step > 0 || p.elapsed - anchor.elapsed > 30000) anchor = p;
     previous = p;
     validPoints++;
-    if (Double.isFinite(p.speed) && p.speed >= 0
+    if (Double.isFinite(p.speed)
+        && p.speed >= 0
         && (!Double.isFinite(p.speedAccuracy) || (p.speedAccuracy >= 0 && p.speedAccuracy <= 3)))
       maxMps = Double.isFinite(maxMps) ? Math.max(maxMps, p.speed) : p.speed;
   }
