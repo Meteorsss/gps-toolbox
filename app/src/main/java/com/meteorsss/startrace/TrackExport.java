@@ -5,7 +5,6 @@ public enum TrackExport {
   GPX("application/gpx+xml", ".gpx"),
   KML("application/vnd.google-earth.kml+xml", ".kml"),
   CSV("text/csv", ".csv");
-
   public final String mimeType, extension;
 
   TrackExport(String mimeType, String extension) {

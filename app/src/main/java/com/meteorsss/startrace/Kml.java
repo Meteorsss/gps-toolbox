@@ -13,12 +13,16 @@ public final class Kml {
   public static String escape(String text) {
     StringBuilder clean = new StringBuilder();
     if (text == null) return "";
-    text.codePoints().forEach(c -> {
-      // XML 1.0 valid characters only, including supplementary Unicode such as emoji.
-      if (c == 9 || c == 10 || c == 13 || (c >= 32 && c <= 0xD7FF)
-          || (c >= 0xE000 && c <= 0xFFFD) || (c >= 0x10000 && c <= 0x10FFFF))
-        clean.appendCodePoint(c);
-    });
+    text.codePoints()
+        .forEach(c -> {
+          // XML 1.0 valid characters only, including supplementary Unicode such as emoji.
+          if (c == 9
+              || c == 10
+              || c == 13
+              || (c >= 32 && c <= 0xD7FF)
+              || (c >= 0xE000 && c <= 0xFFFD)
+              || (c >= 0x10000 && c <= 0x10FFFF)) clean.appendCodePoint(c);
+        });
     return Gpx.escape(clean.toString());
   }
 
@@ -34,12 +38,16 @@ public final class Kml {
 
     public Exporter(Writer out, String name) throws IOException {
       this.out = out;
-      out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-          + "<kml xmlns=\"" + NAMESPACE + "\"><Document><name>" + escape(name)
-          + "</name><description>WGS84 有效轨迹；保留断点，贴地显示，不使用椭球高作为海拔。"
-          + "逐点时间及测量值请使用 GPX / CSV 导出。</description>\n"
-          + "<Style id=\"track\"><LineStyle><color>ffaaba00</color><width>4</width>"
-          + "</LineStyle></Style>\n");
+      out.write(
+          "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+              + "<kml xmlns=\""
+              + NAMESPACE
+              + "\"><Document><name>"
+              + escape(name)
+              + "</name><description>WGS84 有效轨迹；保留断点，贴地显示，不使用椭球高作为海拔。"
+              + "逐点时间及测量值请使用 GPX / CSV 导出。</description>\n"
+              + "<Style id=\"track\"><LineStyle><color>ffaaba00</color><width>4</width>"
+              + "</LineStyle></Style>\n");
     }
 
     public void add(TrackPoint p) throws IOException {
@@ -48,17 +56,19 @@ public final class Kml {
         endSection();
         return;
       }
-      if (previous != null && (p.segment != previous.segment
-          || Math.abs(p.lon - previous.lon) > 180
-          || p.elapsed <= previous.elapsed || p.elapsed - previous.elapsed > 30000))
-        endSection();
+      if (previous != null
+          && (p.segment != previous.segment
+              || Math.abs(p.lon - previous.lon) > 180
+              || p.elapsed <= previous.elapsed
+              || p.elapsed - previous.elapsed > 30000)) endSection();
       if (first == null) {
         first = p;
       } else {
         if (!line) {
           startPlacemark();
-          out.write("<LineString><tessellate>1</tessellate>"
-              + "<altitudeMode>clampToGround</altitudeMode><coordinates>\n");
+          out.write(
+              "<LineString><tessellate>1</tessellate>"
+                  + "<altitudeMode>clampToGround</altitudeMode><coordinates>\n");
           out.write(coordinate(first));
           line = true;
         }
@@ -68,8 +78,7 @@ public final class Kml {
     }
 
     private void startPlacemark() throws IOException {
-      out.write("<Placemark><name>片段 " + (++sections)
-          + "</name><styleUrl>#track</styleUrl>\n");
+      out.write("<Placemark><name>片段 " + (++sections) + "</name><styleUrl>#track</styleUrl>\n");
     }
 
     private void endSection() throws IOException {
@@ -77,8 +86,10 @@ public final class Kml {
       if (line) out.write("</coordinates></LineString></Placemark>\n");
       else {
         startPlacemark();
-        out.write("<Point><altitudeMode>clampToGround</altitudeMode><coordinates>"
-            + coordinate(first) + "</coordinates></Point></Placemark>\n");
+        out.write(
+            "<Point><altitudeMode>clampToGround</altitudeMode><coordinates>"
+                + coordinate(first)
+                + "</coordinates></Point></Placemark>\n");
       }
       first = null;
       previous = null;

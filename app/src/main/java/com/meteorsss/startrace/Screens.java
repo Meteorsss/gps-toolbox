@@ -478,7 +478,10 @@ public final class Screens {
       button(a, a.body, "导出 KML（Google Earth / 我的地图）", () -> a.export(t, TrackExport.KML));
       button(a, a.body, "导出 CSV（全部原始点）", () -> a.export(t, true));
     } else u.note(a.body, "请结束记录后再导出，以获得一致的完整文件。");
-    u.note(a.body, "GPX / KML 保留断点，不插值补线。KML 使用 WGS84 贴地轨迹，不导出椭球高度；逐点时间与测量值用 GPX / CSV。Google Earth 可导入 KML；Google 地图需先在网页版“我的地图”导入（KML 最大 5 MB）。CSV 保留被过滤的位置与模拟标记。");
+    u.note(
+        a.body,
+        "GPX / KML 保留断点，不插值补线。KML 使用 WGS84 贴地轨迹，不导出椭球高度；逐点时间与测量值用 GPX / CSV。Google Earth 可导入"
+            + " KML；Google 地图需先在网页版“我的地图”导入（KML 最大 5 MB）。CSV 保留被过滤的位置与模拟标记。");
   }
 
   private static void places(MainActivity a) {
@@ -732,7 +735,8 @@ public final class Screens {
     u.note(
         privacy,
         "无账号、广告或分析 SDK。可选在线地图会联网获取底图，须先同意；轨迹仍只保存本机。未申请后台始终定位。只有手动开始轨迹后，才使用前台服务继续记录。\n\n"
-            + "导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，KML 用于 Google Earth / 我的地图，CSV 用于保留全部原始点。\n\n"
+            + "导出文件包含精确位置，请谨慎分享。卸载应用会删除本地数据。GPX 用于通用轨迹，KML 用于 Google Earth / 我的地图，CSV"
+            + " 用于保留全部原始点。\n\n"
             + "星迹 "
             + BuildConfig.VERSION_NAME
             + " · build "

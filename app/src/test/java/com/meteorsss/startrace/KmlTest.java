@@ -10,7 +10,8 @@ import org.w3c.dom.*;
 
 public class KmlTest {
   private TrackPoint point(double lat, double lon, long elapsed, int section, boolean valid) {
-    return new TrackPoint(lat, lon, 123.456, 3, 2, 1700000000000L + elapsed, elapsed, section, valid);
+    return new TrackPoint(
+        lat, lon, 123.456, 3, 2, 1700000000000L + elapsed, elapsed, section, valid);
   }
 
   private String export(String name, TrackPoint... points) throws Exception {
@@ -43,16 +44,27 @@ public class KmlTest {
 
   @Test
   public void longitudeFirstGroundClampedNoInventedAltitude() throws Exception {
-    String xml = export("test", point(31.12345678, 121.87654321, 1000, 0, true),
-        point(31.2, 121.9, 2000, 0, true));
+    String xml =
+        export(
+            "test",
+            point(31.12345678, 121.87654321, 1000, 0, true),
+            point(31.2, 121.9, 2000, 0, true));
     Document d = parse(xml);
     assertEquals(1, count(d, "LineString"));
     assertEquals(0, count(d, "Point"));
-    assertEquals("clampToGround", d.getElementsByTagNameNS(Kml.NAMESPACE, "altitudeMode").item(0).getTextContent());
-    assertEquals("1", d.getElementsByTagNameNS(Kml.NAMESPACE, "tessellate").item(0).getTextContent());
+    assertEquals(
+        "clampToGround",
+        d.getElementsByTagNameNS(Kml.NAMESPACE, "altitudeMode").item(0).getTextContent());
+    assertEquals(
+        "1", d.getElementsByTagNameNS(Kml.NAMESPACE, "tessellate").item(0).getTextContent());
     assertTrue(xml.contains("121.87654321,31.12345678"));
     assertFalse(xml.contains("123.456"));
-    String[] coordinates = d.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates").item(0).getTextContent().trim().split("\\s+");
+    String[] coordinates =
+        d.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates")
+            .item(0)
+            .getTextContent()
+            .trim()
+            .split("\\s+");
     assertEquals(2, coordinates.length);
     for (String coordinate : coordinates) assertEquals(2, coordinate.split(",").length);
   }
@@ -66,9 +78,16 @@ public class KmlTest {
 
   @Test
   public void pauseAndRejectedPointPreserveSeparateSections() throws Exception {
-    Document d = parse(export("gaps", point(1, 2, 1000, 0, true), point(1.1, 2.1, 2000, 0, true),
-        point(5, 6, 3000, 0, false), point(1.2, 2.2, 4000, 0, true),
-        point(1.3, 2.3, 5000, 1, true), point(1.4, 2.4, 6000, 1, true)));
+    Document d =
+        parse(
+            export(
+                "gaps",
+                point(1, 2, 1000, 0, true),
+                point(1.1, 2.1, 2000, 0, true),
+                point(5, 6, 3000, 0, false),
+                point(1.2, 2.2, 4000, 0, true),
+                point(1.3, 2.3, 5000, 1, true),
+                point(1.4, 2.4, 6000, 1, true)));
     assertEquals(3, count(d, "Placemark"));
     assertEquals(2, count(d, "LineString"));
     assertEquals(1, count(d, "Point"));
@@ -77,9 +96,13 @@ public class KmlTest {
 
   @Test
   public void invalidCoordinatesNeverEmittedAndBreakTheLine() throws Exception {
-    String xml = export("invalid", point(1, 2, 1000, 0, true),
-        point(Double.NaN, 3, 2000, 0, true), point(1, 181, 3000, 0, true),
-        point(1, 3, 4000, 0, true));
+    String xml =
+        export(
+            "invalid",
+            point(1, 2, 1000, 0, true),
+            point(Double.NaN, 3, 2000, 0, true),
+            point(1, 181, 3000, 0, true),
+            point(1, 3, 4000, 0, true));
     assertFalse(xml.contains("NaN"));
     assertFalse(xml.contains("181.00000000"));
     assertEquals(2, count(parse(xml), "Point"));
@@ -87,9 +110,14 @@ public class KmlTest {
 
   @Test
   public void antimeridianAndMissingTimeNeverJoin() throws Exception {
-    Document d = parse(export("dateline", point(1, 179.9, 1000, 0, true),
-        point(1, -179.9, 2000, 0, true), point(1, -179.8, 33000, 0, true),
-        point(1, -179.7, 34000, 0, true)));
+    Document d =
+        parse(
+            export(
+                "dateline",
+                point(1, 179.9, 1000, 0, true),
+                point(1, -179.9, 2000, 0, true),
+                point(1, -179.8, 33000, 0, true),
+                point(1, -179.7, 34000, 0, true)));
     assertEquals(3, count(d, "Placemark"));
     assertEquals(2, count(d, "Point"));
     assertEquals(1, count(d, "LineString"));
@@ -116,7 +144,8 @@ public class KmlTest {
   public void removesXmlControlsButPreservesValidWhitespace() throws Exception {
     String name = "A" + (char) 1 + "B" + (char) 0 + "C\nD\tE";
     Document d = parse(export(name));
-    assertEquals("ABC\nD\tE", d.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
+    assertEquals(
+        "ABC\nD\tE", d.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
   }
 
   @Test
@@ -130,7 +159,14 @@ public class KmlTest {
     assertEquals(complete, out.toString());
     Document d = parse(complete);
     assertEquals(1, count(d, "LineString"));
-    assertEquals(6001, d.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates").item(0).getTextContent().trim().split("\\s+").length);
+    assertEquals(
+        6001,
+        d.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates")
+            .item(0)
+            .getTextContent()
+            .trim()
+            .split("\\s+")
+            .length);
   }
 
   @Test

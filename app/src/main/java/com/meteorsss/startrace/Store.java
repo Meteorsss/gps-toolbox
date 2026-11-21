@@ -262,7 +262,8 @@ public final class Store extends SQLiteOpenHelper {
     export(id, stream, raw ? TrackExport.CSV : TrackExport.GPX);
   }
 
-  public synchronized void export(long id, OutputStream stream, TrackExport format) throws IOException {
+  public synchronized void export(long id, OutputStream stream, TrackExport format)
+      throws IOException {
     boolean raw = format == TrackExport.CSV;
     Track t = track(id);
     if (t == null) throw new IOException("轨迹不存在");
@@ -285,8 +286,17 @@ public final class Store extends SQLiteOpenHelper {
         if (kml != null) {
           // Include rejected/mock rows in the cursor to preserve a break even in legacy data.
           if (c.getInt(c.getColumnIndexOrThrow("mock")) == 1)
-            kml.add(new TrackPoint(p.lat, p.lon, p.altitude, p.accuracy, p.speed,
-                p.time, p.elapsed, p.segment, false));
+            kml.add(
+                new TrackPoint(
+                    p.lat,
+                    p.lon,
+                    p.altitude,
+                    p.accuracy,
+                    p.speed,
+                    p.time,
+                    p.elapsed,
+                    p.segment,
+                    false));
           else kml.add(p);
         } else if (raw) {
           out.write(

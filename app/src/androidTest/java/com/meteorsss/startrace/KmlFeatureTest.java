@@ -43,9 +43,19 @@ public class KmlFeatureTest {
     try {
       for (int i = 0; i < 6; i++) {
         boolean mock = i == 2;
-        app.store.add(id, new TrackPoint(mock ? 39 : 31 + i * .0001,
-            mock ? 139 : 121 + i * .0001, 50, 3, 2,
-            1700000000000L + i * 1000, 1000 + i * 1000, i < 4 ? 0 : 1, true), mock);
+        app.store.add(
+            id,
+            new TrackPoint(
+                mock ? 39 : 31 + i * .0001,
+                mock ? 139 : 121 + i * .0001,
+                50,
+                3,
+                2,
+                1700000000000L + i * 1000,
+                1000 + i * 1000,
+                i < 4 ? 0 : 1,
+                true),
+            mock);
       }
       app.store.update(id, 5000, 50, "finished");
       try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
@@ -61,15 +71,16 @@ public class KmlFeatureTest {
         });
         scenario.recreate();
         // Exercise the actual save callback after recreation, without relying on DocumentsUI.
-        scenario.onActivity(a -> a.onActivityResult(5, Activity.RESULT_OK,
-            new Intent().setData(Uri.fromFile(file))));
+        scenario.onActivity(a ->
+            a.onActivityResult(5, Activity.RESULT_OK, new Intent().setData(Uri.fromFile(file))));
         CountDownLatch done = new CountDownLatch(1);
         app.io.execute(done::countDown);
         assertTrue("export task completed", done.await(30, TimeUnit.SECONDS));
         assertTrue(file.isFile());
         Document xml = parse(file);
         assertEquals(Kml.NAMESPACE, xml.getDocumentElement().getNamespaceURI());
-        assertEquals("Synthetic KML & 中文 <test>",
+        assertEquals(
+            "Synthetic KML & 中文 <test>",
             xml.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
         assertEquals(3, xml.getElementsByTagNameNS(Kml.NAMESPACE, "Placemark").getLength());
         assertEquals(2, xml.getElementsByTagNameNS(Kml.NAMESPACE, "LineString").getLength());
@@ -123,7 +134,8 @@ public class KmlFeatureTest {
   }
 
   private void screenshot(String name) throws Exception {
-    android.graphics.Bitmap image = InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
+    android.graphics.Bitmap image =
+        InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
     if (image == null) return;
     File dir = new File(context().getExternalFilesDir(null), "screenshots");
     assertTrue(dir.isDirectory() || dir.mkdirs());

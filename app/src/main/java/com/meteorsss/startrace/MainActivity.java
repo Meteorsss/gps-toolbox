@@ -597,7 +597,9 @@ public final class MainActivity extends Activity {
     String[] choices =
         live
             ? new String[] {"查看轨迹"}
-            : new String[] {"查看轨迹", "导出 GPX（有效轨迹）", "导出 KML（Google Earth / 我的地图）", "导出 CSV（全部原始点）", "重命名", "删除轨迹"};
+            : new String[] {
+              "查看轨迹", "导出 GPX（有效轨迹）", "导出 KML（Google Earth / 我的地图）", "导出 CSV（全部原始点）", "重命名", "删除轨迹"
+            };
     new AlertDialog.Builder(this)
         .setTitle(t.name)
         .setItems(
