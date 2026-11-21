@@ -32,6 +32,7 @@ public class RecordingOptionsTest {
 
   private void shot(String name) throws Exception {
     InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+    SystemClock.sleep(800); // Wait for the composed frame after recreation.
     android.graphics.Bitmap bitmap =
         InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
     if (bitmap == null) return;
@@ -44,13 +45,16 @@ public class RecordingOptionsTest {
     }
   }
 
-  private void awaitTheme(ActivityScenario<MainActivity> scenario, boolean light) {
+  private void awaitTheme(ActivityScenario<MainActivity> scenario, boolean light, boolean systemDark) {
     long end = SystemClock.elapsedRealtime() + 15000;
     boolean[] matches = {false};
     while (SystemClock.elapsedRealtime() < end) {
       scenario.onActivity(a ->
           matches[0] =
               a.u.light == light
+                  && ((a.getResources().getConfiguration().uiMode
+                      & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
+                      == android.content.res.Configuration.UI_MODE_NIGHT_YES) == systemDark
                   && ((a.getWindow().getInsetsController().getSystemBarsAppearance()
                               & android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
                           != 0)
@@ -188,23 +192,23 @@ public class RecordingOptionsTest {
         });
       }
       shell("cmd uimode night yes");
-      awaitTheme(scenario, false);
+      awaitTheme(scenario, false, true);
       shell("cmd uimode night no");
-      awaitTheme(scenario, true);
+      awaitTheme(scenario, true, false);
       scenario.onActivity(a -> {
         Preferences.theme(a, ThemeMode.DARK);
         a.buildRoot();
       });
       shell("cmd uimode night yes");
-      awaitTheme(scenario, false);
+      awaitTheme(scenario, false, true);
       shell("cmd uimode night no");
-      awaitTheme(scenario, false);
+      awaitTheme(scenario, false, false);
       scenario.onActivity(a -> {
         Preferences.theme(a, ThemeMode.LIGHT);
         a.buildRoot();
       });
       shell("cmd uimode night yes");
-      awaitTheme(scenario, true);
+      awaitTheme(scenario, true, true);
       scenario.onActivity(a -> a.navigate("settings"));
       shot("three-mode-settings");
     } finally {
