@@ -2,15 +2,19 @@
 
 个人自用的 Android 原生定位工具。目标设备：红米 K70 / Android 16 / 澎湃 OS 3。
 
-**代码在 GitHub，测试及编译只在 GitHub 托管 Actions 上运行。** 不需要电脑安装开发环境。当前分支为 0.2.2-pr 轨迹起终点、记录间隔与三种主题预览；仅通过 Pull Request 提议，尚未合并 main。
+**代码在 GitHub，测试及编译只在 GitHub 托管 Actions 上运行。** 不需要电脑安装开发环境。当前分支为 0.2.3-pr 独立自动测速预览；仅通过 Pull Request 提议，尚未合并 main。
 
 ## 安装
 
 本 PR 预览版仅提供 **ARM64（arm64-v8a）** 固定发布签名包，可在红米 K70 上覆盖安装。经所有者明确要求，本次也发布到 [GitHub Releases](https://github.com/Meteorsss/gps-toolbox/releases)，标记为 **Pre-release**，不合并 PR 或修改 main。
 
-优先在对应 Pre-release 的 Assets 中下载 `StarTrace-0.2.2-pr-arm64-v8a-build-*.apk`。也可打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-PR-preview-apk`，解压获得同一签名 APK。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 仅用于测试，不上传 Release，也不用于覆盖正式签名版本；不要为安装调试包而卸载丢失本地数据。仓库保持公开，Release 附件可直接下载；Actions 产物下载可能仍需登录 GitHub。
+优先在对应 Pre-release 的 Assets 中下载 `StarTrace.apk`。也可打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-release-files`，解压获得同一签名 APK 与 README。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 仅用于测试，不上传 Release，也不用于覆盖正式签名版本；不要为安装调试包而卸载丢失本地数据。仓库保持公开，Release 附件可直接下载；Actions 产物下载可能仍需登录 GitHub。
 
 APK 使用可信分支手动构建时使用固定的个人发布密钥签名，不是每次变化的临时 debug 签名。包名 `com.meteorsss.startrace`。请保留同一仓库签名 Secret，后续正常覆盖更新；卸载会删除本地记录。
+
+## Release 下载文件
+
+今后的 Release 附件仅保留 **`StarTrace.apk`（安装包）** 和 **`README.md`（说明）**。使用说明、更新内容和校验摘要写在发布页面，测试、签名、权限、架构报告和截图保留在 GitHub Actions，不作为 Release 附件。GitHub 自动附带的源码压缩包不是我们上传的安装文件。
 
 ## 功能
 
@@ -123,3 +127,13 @@ PR构建不读取发布签名密钥；仅受信任功能分支手动workflow_dis
 - 设置提供手动深色、手动浅色、跟随系统。旧版手动选择会保留，新安装默认跟随系统；主页、工具和地图页面统一读取主题，系统改变外观后页面正常重建，前台记录服务不受影响。在线底图自身仍使用 OpenFreeMap Liberty，并不承诺地图瓦片自动切换夜间配色。
 - 大字速度表顶部保持当前速度居中，下方显示本次记录的最高速度、平均速度、累计里程和暂停状态。与轨迹统计口径一致：平均为抗漂移里程÷有效记录时长，暂停不计；最高为连续3点可靠速度中值。未记录/不足样本为—，结束记录后不混用旧轨迹数据。
 - 不新增权限或数据库破坏性迁移，仍为纯 ARM64 固定签名 Pre-release，先进入 PR，不合并 main。
+
+
+## 0.2.3-pr · 独立自动测速与简洁发布
+
+- 进入工具里的“大字速度表”即自动建立独立临时运动会话，不再读取 TrackService 的轨迹统计，不需要点击开始轨迹；首次需授予精确定位并启用系统定位。
+- 当前速度置顶居中同时显示 **km/h** 和 **m/s**；下方最高速度、平均速度和累计里程只属于本次进入速度表后的有效定位。
+- 最高速度取本次有效 GNSS 速度样本最大值，跳点、模拟/过期/低精度位置不计。累计里程使用同类抗漂移过滤；平均速度=本次里程÷本页前台测速时长（含静止）。无有效定位或平均样本不足为—，初始累计里程为0。
+- 返回工具页、点击其他导航页或离开本页时清空，再进入从零开始；不保存轨迹、历史或文件。旋转屏幕与主题重建保留本页会话；临时退到后台暂停，不计算后台时长、不补计后台移动，回到同一页继续。进程被终止则临时统计丢失。
+- 本次轨迹保存间隔、轨迹开始/暂停/结束及轨迹统计和速度表均相互独立；速度表不会启动前台轨迹服务或更改原轨迹。
+- 发布仍先进入 PR、保持未合并，纯 ARM64 原固定签名 Pre-release。附件固定为 StarTrace.apk 与 README.md，报告仅在 Actions；发布规范见 [RELEASE-POLICY](docs/RELEASE-POLICY.md)。

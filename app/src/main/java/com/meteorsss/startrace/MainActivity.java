@@ -32,6 +32,7 @@ public final class MainActivity extends Activity {
   private String serviceKey = "";
   private long exportId = -1;
   private TrackExport exportFormat = TrackExport.GPX;
+  private SpeedSession speedSession;
   private final GnssEngine.Observer observer =
       () -> {
         if (resumed && !rendering) refresh();
@@ -52,6 +53,9 @@ public final class MainActivity extends Activity {
       pendingRecord = saved.getBoolean("pendingRecord");
       if (mode.equals("guide")) mode = "places";
     }
+    Object retained = getLastNonConfigurationInstance();
+    if (mode.equals("speed") && retained instanceof SpeedSession)
+      speedSession = (SpeedSession) retained;
     if (Build.VERSION.SDK_INT >= 33)
       getOnBackInvokedDispatcher()
           .registerOnBackInvokedCallback(
@@ -151,6 +155,8 @@ public final class MainActivity extends Activity {
   }
 
   public void render() {
+    if (!mode.equals("speed")) speedSession = null;
+    else if (speedSession == null) speedSession = new SpeedSession(SystemClock.elapsedRealtime());
     rendering = true;
     for (CompassView view : compassViews) view.setActive(false);
     compassViews.clear();
@@ -202,8 +208,34 @@ public final class MainActivity extends Activity {
         }
       };
 
+  private void updateSpeedSession() {
+    if (!resumed || speedSession == null) return;
+    if (!e.fresh()) {
+      speedSession.disconnect();
+      return;
+    }
+    Location l = e.location;
+    speedSession.add(new TrackPoint(l.getLatitude(), l.getLongitude(), Double.NaN,
+        l.hasAccuracy() ? l.getAccuracy() : Double.NaN,
+        l.hasSpeed() ? l.getSpeed() : Double.NaN, l.getTime(),
+        l.getElapsedRealtimeNanos() / 1000000L, 0, true,
+        Double.NaN, Double.NaN, Double.NaN,
+        l.hasSpeedAccuracy() ? l.getSpeedAccuracyMetersPerSecond() : Double.NaN),
+        l.isMock(), SystemClock.elapsedRealtime());
+  }
+
+  SpeedSession.Snapshot speedStats() {
+    return speedSession == null ? null : speedSession.snapshot(SystemClock.elapsedRealtime());
+  }
+
+  @Override
+  public Object onRetainNonConfigurationInstance() {
+    return mode.equals("speed") ? speedSession : null;
+  }
+
   void refresh() {
     if (rendering || status == null) return;
+    updateSpeedSession();
     String state =
         !e.precise()
             ? "○  未获得精确位置权限"
@@ -225,6 +257,7 @@ public final class MainActivity extends Activity {
   protected void onResume() {
     super.onResume();
     resumed = true;
+    if (speedSession != null) speedSession.resume(SystemClock.elapsedRealtime());
     Preferences.applyWindow(this, u.light);
     e.observe(observer);
     e.setVisible(true);
@@ -236,12 +269,20 @@ public final class MainActivity extends Activity {
 
   @Override
   protected void onPause() {
+    if (speedSession != null) speedSession.pause(SystemClock.elapsedRealtime());
     resumed = false;
     for (CompassView view : compassViews) view.setActive(false);
     app.main.removeCallbacks(tick);
     e.unobserve(observer);
     e.setVisible(false);
     super.onPause();
+  }
+
+  @Override
+  protected void onDestroy() {
+    app.main.removeCallbacks(tick);
+    if (!isChangingConfigurations()) speedSession = null;
+    super.onDestroy();
   }
 
   public void toast(String message) {

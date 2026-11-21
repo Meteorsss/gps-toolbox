@@ -131,43 +131,44 @@ public class RecordingOptionsTest {
   }
 
   @Test
-  public void largeSpeedStatisticsMatchLiveTrackAndClearWithoutRecorder() throws Exception {
+  public void largeSpeedStartsIndependentlyAndDoesNotReadTrackTotals() throws Exception {
     App app = app();
-    long id = app.store.begin("Synthetic large speed test");
+    long id = app.store.begin("Synthetic independent speed test");
     TrackService previous = TrackService.active;
     TrackService live = new TrackService();
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       scenario.onActivity(a -> {
         live.prepareForTests(app, id);
-        TrackService.active = live;
-        long base = SystemClock.elapsedRealtime() - 6000;
-        for (int i = 0; i < 4; i++) live.fixForTests(fix(base + 1000 * i, 31 + i * .0001));
         live.distance = 1234;
         live.paused = true;
+        TrackService.active = live;
+        a.e.location = null;
         a.navigate("speed");
-        TextView stats = a.body.findViewWithTag("large-speed-recording-stats");
+        TextView stats = a.body.findViewWithTag("large-speed-session-stats");
         TextView current = a.body.findViewWithTag("large-speed-current");
-        assertNotNull(stats);
-        assertNotNull(current);
+        TextView mps = a.body.findViewWithTag("large-speed-current-mps");
+        assertNotNull(stats); assertNotNull(current); assertNotNull(mps);
         assertEquals(Gravity.CENTER, current.getGravity());
-        assertTrue(stats.getText().toString().contains("最高速度  7.2 km/h"));
-        assertTrue(stats.getText().toString().contains("累计里程  " + Geo.meters(1234)));
-        assertTrue(stats.getText().toString().contains("平均速度  74.0 km/h"));
-        assertTrue(stats.getText().toString().contains("已暂停"));
+        assertEquals(0, a.speedStats().distance, 0);
+        assertTrue(stats.getText().toString().contains("本次测速"));
+        assertFalse(stats.getText().toString().contains(Geo.meters(1234)));
         live.distance = 2345;
         a.refresh();
-        assertTrue(stats.getText().toString().contains(Geo.meters(2345)));
+        assertEquals(0, a.speedStats().distance, 0);
+        assertFalse(stats.getText().toString().contains(Geo.meters(2345)));
+        a.navigate("");
+        assertNull(a.speedStats());
+        assertSame(live, TrackService.active);
+        assertTrue(live.paused);
+        a.navigate("speed");
+        assertEquals(0, a.speedStats().distance, 0);
+        assertEquals(0, a.speedStats().validPoints);
         TrackService.active = null;
         a.refresh();
-        assertTrue(stats.getText().toString().contains("未开始记录"));
-        assertFalse(stats.getText().toString().contains(Geo.meters(2345)));
-        TrackService.active = live;
-        a.refresh();
+        assertNotNull(a.speedStats());
       });
-      shot("large-speed-live-statistics");
     } finally {
-      InstrumentationRegistry.getInstrumentation()
-          .runOnMainSync(() -> TrackService.active = previous);
+      InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> TrackService.active = previous);
       app.store.delete(id);
     }
   }

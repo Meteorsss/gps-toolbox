@@ -74,3 +74,11 @@
 - Source `1ddb647ffa02b98e055705a82ae2c01b73a38487`. Native manual light/dark dialogs and system-bar appearance now match the selected mode; regression awaits actual system configuration and a composed screenshot frame.
 - 93 unit tests and 19 Android 16 instrumentation tests passed, zero failed/skipped; downloaded KML endpoints and screenshots checked. APK only contains ELF64 AArch64 native libraries and matches the previous release signing certificate.
 - APK SHA-256 `1a146a33247b1e7052311e9142e3b6694c123dd79409e88e70e6bf59f2af8c6a`. This is the final 0.2.2-pr delivery; earlier #21/#24 builds are superseded, not published as new releases. User field/import testing remains required.
+
+## 0.2.3-pr independent speedometer acceptance
+
+- Enter large speed view with no track recording: it auto-measures valid foreground fixes, shows current km/h and m/s plus independent max/average/distance, and creates no DB track or foreground service.
+- Back to tools or switch tabs: temporary values clear. Re-enter: begin at zero, never reuse old positions or a track's statistics. Leaving does not stop or alter any separately running track.
+- Rotate/recreate/change theme while staying in speed view: preserve session. Background: pause foreground duration and break position continuity; return without bridging background movement.
+- Duplicate/stale/mock/low-accuracy/outlier positions never fabricate distance or maximum. No valid fix still displays waiting, not a demand to start track recording.
+- Release assets must be exactly StarTrace.apk and README.md. Reports stay in Actions; all code still goes through PR, main unchanged.

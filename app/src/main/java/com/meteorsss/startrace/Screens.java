@@ -623,53 +623,42 @@ public final class Screens {
   private static void speed(MainActivity a) {
     Ui u = a.u;
     u.section(a.body, "LIVE SPEED", "大字速度表");
+    if (!a.e.precise() || !a.e.gpsEnabled())
+      button(a, a.body, "启用精确定位 · 进入即自动测速", a::askLocation);
     LinearLayout p = u.panel();
-    u.gap(p, 32);
+    u.gap(p, 24);
     TextView speed = u.title("—", 76);
     speed.setGravity(Gravity.CENTER);
-    a.bind(
-        speed,
-        () ->
-            a.e.fresh() && a.e.location.hasSpeed()
-                ? f("%.1f", a.e.location.getSpeed() * 3.6)
-                : "—");
     speed.setTag("large-speed-current");
+    a.bind(speed, () -> a.e.fresh() && a.e.location.hasSpeed()
+        && Float.isFinite(a.e.location.getSpeed()) && a.e.location.getSpeed() >= 0
+        ? f("%.1f", a.e.location.getSpeed() * 3.6) : "—");
     p.addView(speed, new LinearLayout.LayoutParams(-1, -2));
     TextView unit = u.text("km/h", 22, u.accent);
     unit.setGravity(Gravity.CENTER);
     p.addView(unit, new LinearLayout.LayoutParams(-1, -2));
-    u.gap(p, 20);
-    TextView recording = u.text("", 15, u.accent);
-    recording.setTag("large-speed-recording-stats");
-    recording.setGravity(Gravity.CENTER);
-    a.bind(
-        recording,
-        () -> {
-          TrackService live = TrackService.active;
-          if (live == null) return "未开始记录\n最高速度  —    平均速度  —\n累计里程  —";
-          TrackAnalytics.Result stats = live.insights();
-          String max = Double.isFinite(stats.maxSpeed) ? f("%.1f km/h", stats.maxSpeed * 3.6) : "—";
-          String avg =
-              Double.isFinite(stats.averageKmh()) ? f("%.1f km/h", stats.averageKmh()) : "—";
-          return (live.paused ? "本次记录 · 已暂停" : "本次记录 · 进行中")
-              + "\n最高速度  "
-              + max
-              + "\n平均速度  "
-              + avg
-              + "\n累计里程  "
-              + Geo.meters(stats.distance);
-        });
-    p.addView(recording, new LinearLayout.LayoutParams(-1, -2));
-    u.gap(p, 20);
-    TextView other = u.text("", 15, u.muted);
-    other.setGravity(Gravity.CENTER);
-    a.bind(
-        other,
-        () ->
-            a.e.fresh() && a.e.location.hasSpeed()
-                ? f("%.2f m/s", a.e.location.getSpeed())
-                : "等待有效速度数据");
-    p.addView(other);
+    u.gap(p, 8);
+    TextView metres = u.text("— m/s", 24, u.accent);
+    metres.setTag("large-speed-current-mps");
+    metres.setGravity(Gravity.CENTER);
+    a.bind(metres, () -> a.e.fresh() && a.e.location.hasSpeed()
+        && Float.isFinite(a.e.location.getSpeed()) && a.e.location.getSpeed() >= 0
+        ? f("%.2f m/s", a.e.location.getSpeed()) : "— m/s");
+    p.addView(metres, new LinearLayout.LayoutParams(-1, -2));
+    u.gap(p, 24);
+    TextView statistics = u.text("", 16, u.accent);
+    statistics.setTag("large-speed-session-stats");
+    statistics.setGravity(Gravity.CENTER);
+    a.bind(statistics, () -> {
+      SpeedSession.Snapshot s = a.speedStats();
+      if (s == null) return "本次测速 · 等待进入";
+      String max = Double.isFinite(s.maxMps) ? f("%.1f km/h", s.maxMps * 3.6) : "—";
+      String avg = Double.isFinite(s.averageMps) ? f("%.1f km/h", s.averageMps * 3.6) : "—";
+      return (s.validPoints == 0 ? "本次测速 · 等待有效定位" : "本次测速 · 自动统计中")
+          + "\n最高速度  " + max + "\n平均速度  " + avg
+          + "\n累计里程  " + Geo.meters(s.distance);
+    });
+    p.addView(statistics, new LinearLayout.LayoutParams(-1, -2));
     u.gap(p, 24);
     Switch keep = new Switch(a);
     keep.setText("保持屏幕常亮");
@@ -678,9 +667,8 @@ public final class Screens {
     keep.setOnCheckedChangeListener((v, on) -> a.keepAwake(on));
     p.addView(keep);
     a.body.addView(p);
-    u.note(
-        a.body,
-        "下方统计只属于当前正在录制的轨迹；平均速度=抗漂移里程÷记录时长（暂停不计），最高速度为连续3个可靠保存点的速度中值，数据不足显示—。保存间隔较长可能遗漏短时峰值或弯道里程。速度来自定位数据，请勿在驾驶时操作手机。离开页面取消常亮。");
+    u.note(a.body, "进入本页即自动开始独立测速，不需要开启轨迹记录；离开本页即清空，再进入从零开始，不保存历史或轨迹文件。临时退到后台暂停统计，返回同一页继续，不连接后台移动。\n\n"
+        + "平均速度=本页抗漂移里程÷前台测速时长（含静止），最高速度为本次有效GNSS速度样本的最大值。定位未到或样本不足显示—；模拟、过期或低精度位置不计统计。轨迹记录的开始、暂停、间隔与统计均不影响本页。所有数值为估计，请勿在驾驶时操作手机。");
   }
 
   private static void diagnostics(MainActivity a) {
