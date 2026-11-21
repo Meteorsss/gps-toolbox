@@ -130,8 +130,10 @@ public class MapFeatureTest {
         assertEquals(2, a.trackSegmentsForTests());
       });
       shot("map-local-track");
+      scenario.onActivity(a -> assertTrue(a.cameraZoomForTests() > 3));
       scenario.recreate();
-      await(scenario, a -> a.readyForTests() && a.trackPointsForTests() == 20, "recreated map");
+      await(scenario, a -> a.readyForTests() && a.trackPointsForTests() == 20
+          && a.cameraZoomForTests() > 3, "recreated map retains camera");
       scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);
       scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);
       await(scenario, MapActivity::readyForTests, "resumed map");

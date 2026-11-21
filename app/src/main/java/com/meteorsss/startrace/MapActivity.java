@@ -241,7 +241,8 @@ public final class MapActivity extends Activity {
               .show();
           return true;
         });
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(35, 105), 3));
+        if (mapState == null)
+          map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(35, 105), 3));
         loadStyle();
       });
     } catch (RuntimeException | UnsatisfiedLinkError error) {
@@ -726,6 +727,10 @@ public final class MapActivity extends Activity {
     out.putLong("requested_track", requestedTrack);
     out.putBoolean("fit_pending", fitPending);
     out.putLong("display_track", displayTrack);
+  }
+
+  double cameraZoomForTests() {
+    return map == null ? 0 : map.getCameraPosition().zoom;
   }
 
   boolean followingForTests() {
