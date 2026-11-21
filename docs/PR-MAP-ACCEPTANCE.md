@@ -38,3 +38,14 @@
 - Save a KML through DocumentsUI, rotate while the picker is open, and verify `.kml`/MIME/selected track are retained. Cancel without writing or changing the source.
 - Import a synthetic KML in Google Earth / My Maps and verify WGS84 alignment, separate sections, singleton points and no invented altitude. Do not upload real user tracks for testing.
 - Google Earth and My Maps import limitations are documented in KML-IMPORT.md; no direct Google Maps app import or automatic cloud upload is claimed.
+
+## 0.2.1-pr cloud verification (2026-11-21)
+
+- Signed ARM64 build #18: https://github.com/Meteorsss/gps-toolbox/actions/runs/44864744525
+- APK source: `3d8b2c5292edd8f3e7c0fb2be1fb75fd227a5378`; 82 unit tests and 15 Android 16 debug instrumentation tests passed without failures or skipped tests.
+- KML tests cover XML/UTF-8 escaping, longitude-first coordinates, ground clamping, no invented altitude, singletons, pause/rejected/mock/gap/dateline breaks, full 6001-point export, MIME/filename, save after recreation, cancellation and unchanged source/GPX/CSV.
+- Centered-speed layout assertions and cloud screenshots passed in both themes and after recreation.
+- Actual synthetic KML produced through the save callback was downloaded and parsed: two LineString sections, one Point section, no mock coordinates. Google-account import and Redmi K70 field acceptance are not claimed.
+- ARM64-only ELF64 AArch64 verification, existing release certificate continuity, versionCode=18 and APK SHA-256 verified.
+- APK SHA-256: `67dcb077ee2c5d845a42b52133e6639f78ecd0c4098b36625f0f5c7e1d2797ce`.
+- Owner requested another public Pre-release; PR remains unmerged and main unchanged.
