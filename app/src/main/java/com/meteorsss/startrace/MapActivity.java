@@ -594,11 +594,12 @@ public final class MapActivity extends Activity {
     panel.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(16));
     scroll.addView(panel);
     statisticsPanel = panel;
-    AlertDialog dialog = new AlertDialog.Builder(this)
-        .setTitle("本地轨迹统计")
-        .setView(scroll)
-        .setPositiveButton("关闭", null)
-        .create();
+    AlertDialog dialog =
+        new AlertDialog.Builder(this)
+            .setTitle("本地轨迹统计")
+            .setView(scroll)
+            .setPositiveButton("关闭", null)
+            .create();
     statisticsDialog = dialog;
     dialog.setOnDismissListener(d -> {
       if (statisticsDialog == dialog) {
