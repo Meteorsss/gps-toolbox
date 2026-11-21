@@ -82,3 +82,13 @@
 - Rotate/recreate/change theme while staying in speed view: preserve session. Background: pause foreground duration and break position continuity; return without bridging background movement.
 - Duplicate/stale/mock/low-accuracy/outlier positions never fabricate distance or maximum. No valid fix still displays waiting, not a demand to start track recording.
 - Release assets must be exactly StarTrace.apk and README.md. Reports stay in Actions; all code still goes through PR, main unchanged.
+
+## 0.2.3-pr independent speed-session verification (2026-11-21)
+
+- Signed ARM64 build #31: https://github.com/Meteorsss/gps-toolbox/actions/runs/44885311076; source `d9347bef70980b29a4a5828608f41376c6d0e6a9`.
+- 107 unit tests and 23 Android 16 debug instrumentation tests passed with no failures or skipped tests. Four new device regressions use synthetic input through the production GNSS callback; the emulator platform provider is isolated in these fixtures, without bypassing validity/jump filters.
+- Verified automatic max/average/distance without a track service or new database track; current km/h and m/s conversion; back/tab exit clearing; re-entry at zero; recreation/theme retention; foreground-only duration and no background movement bridge; mock/poor/duplicate/stale filtering.
+- Downloaded screenshot confirms independent live statistics with no recorder active. No Redmi K70 field measurement is claimed.
+- Signed APK versionName=0.2.3-pr, versionCode=31; native libraries only ELF64 AArch64; fixed certificate matches previous release; cloud and local APK SHA-256 `007a2f8ad13831e6e60d9ceb44c9973e04e6076dc879c18a75c3281406574f34` match.
+- Publishable artifact contains exactly StarTrace.apk and README.md; only those two attachments may be uploaded. Reports/screenshots remain in Actions. Earlier failed fixture build #29 is not published.
+- PR remains unmerged, main unchanged, repository public; release marked Pre-release.
