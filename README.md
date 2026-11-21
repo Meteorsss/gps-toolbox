@@ -2,13 +2,13 @@
 
 个人自用的 Android 原生定位工具。目标设备：红米 K70 / Android 16 / 澎湃 OS 3。
 
-**代码在 GitHub，测试及编译只在 GitHub 托管 Actions 上运行。** 不需要电脑安装开发环境。当前分支为 0.2.0-pr 地图与轨迹统计预览；仅通过 Pull Request 提议，尚未合并 main。
+**代码在 GitHub，测试及编译只在 GitHub 托管 Actions 上运行。** 不需要电脑安装开发环境。当前分支为 0.2.1-pr 地图、轨迹统计与 KML 导出预览；仅通过 Pull Request 提议，尚未合并 main。
 
 ## 安装
 
 本 PR 预览版仅提供 **ARM64（arm64-v8a）** 固定发布签名包，可在红米 K70 上覆盖安装。经所有者明确要求，本次也发布到 [GitHub Releases](https://github.com/Meteorsss/gps-toolbox/releases)，标记为 **Pre-release**，不合并 PR 或修改 main。
 
-优先在对应 Pre-release 的 Assets 中下载 `StarTrace-0.2.0-pr-arm64-v8a-build-*.apk`。也可打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-PR-preview-apk`，解压获得同一签名 APK。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 仅用于测试，不上传 Release，也不用于覆盖正式签名版本；不要为安装调试包而卸载丢失本地数据。仓库保持公开，Release 附件可直接下载；Actions 产物下载可能仍需登录 GitHub。
+优先在对应 Pre-release 的 Assets 中下载 `StarTrace-0.2.1-pr-arm64-v8a-build-*.apk`。也可打开 Actions → Android APK → 功能分支的最新成功 **workflow_dispatch** 运行 → Artifacts → `StarTrace-PR-preview-apk`，解压获得同一签名 APK。`pull_request`/`push` 运行中的 `StarTrace-PR-debug.apk` 仅用于测试，不上传 Release，也不用于覆盖正式签名版本；不要为安装调试包而卸载丢失本地数据。仓库保持公开，Release 附件可直接下载；Actions 产物下载可能仍需登录 GitHub。
 
 APK 使用可信分支手动构建时使用固定的个人发布密钥签名，不是每次变化的临时 debug 签名。包名 `com.meteorsss.startrace`。请保留同一仓库签名 Secret，后续正常覆盖更新；卸载会删除本地记录。
 
@@ -18,7 +18,7 @@ APK 使用可信分支手动构建时使用固定的个人发布密钥签名，�
 - 卫星：天空图，按系统和卫星编号去重计数，全部信号明细、分系统统计及设备提供的频率。
 - 轨迹：手动开始、暂停、继续、停止；定位前台服务及通知操作；SQLite 实时保存；异常中断恢复标记。
 - 本地历史：相对轨迹预览、距离/时间/平均速度、重命名和删除。
-- 导出：有效轨迹 GPX、全部原始点 CSV；保留分段，过滤不修改原始数据。
+- 导出：有效轨迹 GPX / KML、全部原始点 CSV；保留分段，过滤不修改原始数据。
 - 收藏地点：当前位置或输入 WGS84 坐标、名称和备注、到目标的直线距离及真北方向指引。
 - 工具：磁北指南针、大字速度表、可选常亮、坐标格式转换、球面近似两点测距、定位诊断。
 - 深浅色主题，中文界面，无 Google Play 服务依赖。
@@ -47,7 +47,7 @@ APK 使用可信分支手动构建时使用固定的个人发布密钥签名，�
 3. 静止 5 分钟，观察漂移；步行 10 分钟，验证距离和轨迹分段。
 4. 记录时熄屏 15–30 分钟，再打开，检查是否连续；必要时调整澎湃 OS 的应用电池策略。
 5. 暂停、移动、继续：不应把暂停路段计入；关闭定位后应显示断点。
-6. 导出 GPX 与 CSV，检查时间、坐标、分段、原始点数；不要把真实测试轨迹上传公共仓库。
+6. 导出 GPX、KML 与 CSV，检查时间、坐标、分段、原始点数；KML 导入 Google Earth / My Maps 核对位置；不要把真实测试轨迹上传公共仓库。
 7. 强制停止再打开：已存数据应标记中断，不暗中自动重启记录。
 8. 安装后续版本，确认可覆盖更新且历史保留。
 
@@ -104,3 +104,13 @@ MapLibre Native Android 13.5.4 + OpenFreeMap Liberty；免注册、免API Key。
 PR构建不读取发布签名密钥；仅受信任功能分支手动workflow_dispatch使用原签名生成可覆盖安装的PR预览APK。所有产物来自Actions。按所有者要求提供纯ARM64签名APK并发布为 **Pre-release**；**不合并main，不修改仓库可见性**。调试测试包保留模拟器所需架构，不作为发布附件。
 
 测试：纯Java统计/几何单测、SQLite原版本迁移、MapLibre无网络样式/轨迹/生命周期、OpenFreeMap在线底图加载。在线网络可用性仅代表GitHub运行器，不能保证你的移动网络或红米渲染/耗电表现。所有测试位置为合成样例，不使用用户位置。
+
+
+## 0.2.1-pr · KML 导出与速度居中
+
+- 仪表盘“当前速度”标题、速度数值与 km/h 组合在卡片中水平居中；深浅色主题一致。
+- 历史轨迹操作菜单与详情页新增“导出 KML（Google Earth / 我的地图）”。使用系统保存器，MIME 为 `application/vnd.google-earth.kml+xml`、扩展名 `.kml`；旋转/重建页面后保留所选格式，取消保存不继续导出。
+- 标准 KML 2.2，WGS84 的“经度,纬度”顺序。全部有效轨迹点流式写入，不采用地图预览抽样；断点、无效/模拟点、超过 30 秒的缺失和跨日期变更线分开保存，单点段用 Point、多点段用 LineString。
+- KML 使用 `clampToGround` 贴地轨迹，不写入椭球高作为海拔，不提供逐点时间回放；逐点时间与测量值继续使用 GPX / CSV。导出不更改数据库、原始点或过滤结果。
+- 导入步骤与服务限制见 [KML 导入说明](docs/KML-IMPORT.md)。Google Earth 支持 KML；Google Maps 需通过 My Maps 网页导入，不是在普通地图 App 中直接打开。My Maps 解压后的 KML / KMZ 最大 5 MB，长轨迹建议使用 Google Earth，不会为此静默删点。
+- 仍只发布 ARM64 固定签名 Pre-release；PR 未合并，main 不变，仓库公开。

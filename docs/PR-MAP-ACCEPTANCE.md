@@ -30,3 +30,11 @@
 - Release APK includes only `arm64-v8a`; cloud verification checks every bundled native library is ELF64 AArch64, with matching APK badging and fixed signing certificate.
 - Debug builds retain emulator-compatible ABIs for Android 16 tests and are not uploaded as Release assets.
 - Publishing targets the verified feature-branch commit; the PR remains unmerged, main unchanged and repository public.
+
+## KML export and centered speed (0.2.1-pr)
+
+- Confirm the dashboard speed title and value/unit row are centered in both themes and after recreation.
+- Finished-track actions and details include KML, GPX and CSV. Recording must be stopped before exporting.
+- Save a KML through DocumentsUI, rotate while the picker is open, and verify `.kml`/MIME/selected track are retained. Cancel without writing or changing the source.
+- Import a synthetic KML in Google Earth / My Maps and verify WGS84 alignment, separate sections, singleton points and no invented altitude. Do not upload real user tracks for testing.
+- Google Earth and My Maps import limitations are documented in KML-IMPORT.md; no direct Google Maps app import or automatic cloud upload is claimed.

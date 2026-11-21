@@ -259,6 +259,11 @@ public final class Store extends SQLiteOpenHelper {
   }
 
   public synchronized void export(long id, OutputStream stream, boolean raw) throws IOException {
+    export(id, stream, raw ? TrackExport.CSV : TrackExport.GPX);
+  }
+
+  public synchronized void export(long id, OutputStream stream, TrackExport format) throws IOException {
+    boolean raw = format == TrackExport.CSV;
     Track t = track(id);
     if (t == null) throw new IOException("轨迹不存在");
     try (Writer out = new BufferedWriter(new OutputStreamWriter(stream, StandardCharsets.UTF_8));
@@ -266,17 +271,24 @@ public final class Store extends SQLiteOpenHelper {
             getReadableDatabase()
                 .rawQuery(
                     "SELECT * FROM points WHERE track=? "
-                        + (raw ? "" : "AND accepted=1 ")
+                        + (format == TrackExport.GPX ? "AND accepted=1 " : "")
                         + "ORDER BY id",
                     new String[] {"" + id})) {
+      Kml.Exporter kml = format == TrackExport.KML ? new Kml.Exporter(out, t.name) : null;
       if (raw)
         out.write(
             "latitude_wgs84,longitude_wgs84,ellipsoid_height_m,accuracy_m,speed_mps,utc,elapsed_ms,segment,accepted,mock,vertical_accuracy_m,msl_altitude_m,msl_accuracy_m,speed_accuracy_mps\n");
-      else out.write(Gpx.header(t.name));
+      else if (kml == null) out.write(Gpx.header(t.name));
       int segment = -1;
       while (c.moveToNext()) {
         TrackPoint p = point(c);
-        if (raw) {
+        if (kml != null) {
+          // Include rejected/mock rows in the cursor to preserve a break even in legacy data.
+          if (c.getInt(c.getColumnIndexOrThrow("mock")) == 1)
+            kml.add(new TrackPoint(p.lat, p.lon, p.altitude, p.accuracy, p.speed,
+                p.time, p.elapsed, p.segment, false));
+          else kml.add(p);
+        } else if (raw) {
           out.write(
               String.format(
                   Locale.US,
@@ -304,7 +316,8 @@ public final class Store extends SQLiteOpenHelper {
           out.write(Gpx.point(p));
         }
       }
-      if (!raw) {
+      if (kml != null) kml.finish();
+      else if (!raw) {
         if (segment != -1) out.write("</trkseg>\n");
         out.write(Gpx.footer());
       }

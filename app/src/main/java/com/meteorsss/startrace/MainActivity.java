@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
   private boolean resumed, rendering, pendingRecord;
   private String serviceKey = "";
   private long exportId = -1;
-  private boolean exportRaw;
+  private TrackExport exportFormat = TrackExport.GPX;
   private final GnssEngine.Observer observer =
       () -> {
         if (resumed && !rendering) refresh();
@@ -47,7 +47,7 @@ public final class MainActivity extends Activity {
       mode = saved.getString("mode", "");
       selectedTrack = saved.getLong("track", -1);
       exportId = saved.getLong("export", -1);
-      exportRaw = saved.getBoolean("raw");
+      exportFormat = TrackExport.restore(saved.getString("export_format"), saved.getBoolean("raw"));
       pendingRecord = saved.getBoolean("pendingRecord");
       if (mode.equals("guide")) mode = "places";
     }
@@ -65,7 +65,7 @@ public final class MainActivity extends Activity {
     out.putString("mode", mode);
     out.putLong("track", selectedTrack);
     out.putLong("export", exportId);
-    out.putBoolean("raw", exportRaw);
+    out.putString("export_format", exportFormat.name());
     out.putBoolean("pendingRecord", pendingRecord);
   }
 
@@ -597,7 +597,7 @@ public final class MainActivity extends Activity {
     String[] choices =
         live
             ? new String[] {"查看轨迹"}
-            : new String[] {"查看轨迹", "导出 GPX（有效轨迹）", "导出 CSV（全部原始点）", "重命名", "删除轨迹"};
+            : new String[] {"查看轨迹", "导出 GPX（有效轨迹）", "导出 KML（Google Earth / 我的地图）", "导出 CSV（全部原始点）", "重命名", "删除轨迹"};
     new AlertDialog.Builder(this)
         .setTitle(t.name)
         .setItems(
@@ -607,8 +607,9 @@ public final class MainActivity extends Activity {
                 selectedTrack = t.id;
                 navigate("track");
               } else if (w == 1) export(t, false);
-              else if (w == 2) export(t, true);
-              else if (w == 3) {
+              else if (w == 2) export(t, TrackExport.KML);
+              else if (w == 3) export(t, true);
+              else if (w == 4) {
                 LinearLayout f = form();
                 EditText n = input(f, "名称", t.name, false);
                 new AlertDialog.Builder(this)
@@ -640,16 +641,27 @@ public final class MainActivity extends Activity {
   }
 
   public void export(Store.Track t, boolean raw) {
+    export(t, raw ? TrackExport.CSV : TrackExport.GPX);
+  }
+
+  Intent prepareExport(Store.Track t, TrackExport format) {
     exportId = t.id;
-    exportRaw = raw;
-    Intent i =
-        new Intent(Intent.ACTION_CREATE_DOCUMENT)
-            .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType(raw ? "text/csv" : "application/gpx+xml")
-            .putExtra(Intent.EXTRA_TITLE, "startrace-" + t.id + (raw ? ".csv" : ".gpx"));
+    exportFormat = format;
+    return new Intent(Intent.ACTION_CREATE_DOCUMENT)
+        .addCategory(Intent.CATEGORY_OPENABLE)
+        .setType(format.mimeType)
+        .putExtra(Intent.EXTRA_TITLE, "startrace-" + t.id + format.extension);
+  }
+
+  public void export(Store.Track t, TrackExport format) {
+    if (TrackService.active != null && TrackService.active.trackId == t.id) {
+      toast("请结束记录后再导出，以获得一致的完整文件。");
+      return;
+    }
     try {
-      startActivityForResult(i, 5);
+      startActivityForResult(prepareExport(t, format), 5);
     } catch (ActivityNotFoundException ex) {
+      exportId = -1;
       toast("未找到系统文件保存器。");
     }
   }
@@ -657,19 +669,23 @@ public final class MainActivity extends Activity {
   @Override
   protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
+    if (request == 5 && result != RESULT_OK) {
+      exportId = -1;
+      return;
+    }
     if (request == 5
         && result == RESULT_OK
         && data != null
         && data.getData() != null
         && exportId >= 0) {
       long id = exportId;
-      boolean raw = exportRaw;
+      TrackExport format = exportFormat;
+      exportId = -1;
       Uri uri = data.getData();
       app.io.execute(() -> {
-        try {
-          OutputStream stream = getContentResolver().openOutputStream(uri, "wt");
+        try (OutputStream stream = getContentResolver().openOutputStream(uri, "wt")) {
           if (stream == null) throw new IOException("无法打开文件");
-          app.store.export(id, stream, raw);
+          app.store.export(id, stream, format);
           app.main.post(() -> toast("导出完成，请妥善保管含精确位置的文件。"));
         } catch (Exception ex) {
           app.main.post(() -> toast("导出失败，请检查保存位置及可用空间。"));
