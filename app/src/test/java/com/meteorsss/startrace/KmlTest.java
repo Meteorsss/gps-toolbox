@@ -51,7 +51,7 @@ public class KmlTest {
             point(31.2, 121.9, 2000, 0, true));
     Document d = parse(xml);
     assertEquals(1, count(d, "LineString"));
-    assertEquals(0, count(d, "Point"));
+    assertEquals(2, count(d, "Point"));
     assertEquals(
         "clampToGround",
         d.getElementsByTagNameNS(Kml.NAMESPACE, "altitudeMode").item(0).getTextContent());
@@ -72,7 +72,7 @@ public class KmlTest {
   @Test
   public void singlePointIsPointNotInvalidOneVertexLine() throws Exception {
     Document d = parse(export("single", point(0, 0, 1000, 0, true)));
-    assertEquals(1, count(d, "Point"));
+    assertEquals(2, count(d, "Point"));
     assertEquals(0, count(d, "LineString"));
   }
 
@@ -88,9 +88,9 @@ public class KmlTest {
                 point(1.2, 2.2, 4000, 0, true),
                 point(1.3, 2.3, 5000, 1, true),
                 point(1.4, 2.4, 6000, 1, true)));
-    assertEquals(3, count(d, "Placemark"));
+    assertEquals(5, count(d, "Placemark"));
     assertEquals(2, count(d, "LineString"));
-    assertEquals(1, count(d, "Point"));
+    assertEquals(3, count(d, "Point"));
     assertFalse(d.getDocumentElement().getTextContent().contains("6.00000000,5.00000000"));
   }
 
@@ -105,7 +105,7 @@ public class KmlTest {
             point(1, 3, 4000, 0, true));
     assertFalse(xml.contains("NaN"));
     assertFalse(xml.contains("181.00000000"));
-    assertEquals(2, count(parse(xml), "Point"));
+    assertEquals(4, count(parse(xml), "Point"));
   }
 
   @Test
@@ -118,8 +118,8 @@ public class KmlTest {
                 point(1, -179.9, 2000, 0, true),
                 point(1, -179.8, 33000, 0, true),
                 point(1, -179.7, 34000, 0, true)));
-    assertEquals(3, count(d, "Placemark"));
-    assertEquals(2, count(d, "Point"));
+    assertEquals(5, count(d, "Placemark"));
+    assertEquals(4, count(d, "Point"));
     assertEquals(1, count(d, "LineString"));
   }
 
@@ -167,6 +167,36 @@ public class KmlTest {
             .trim()
             .split("\\s+")
             .length);
+  }
+
+  @Test
+  public void endpointsUseFirstAndLastValidPointsNotRejectedEdges() throws Exception {
+    String xml = export("endpoints", point(2, 3, 0, 0, false), point(31, 121, 1000, 0, true),
+        point(31.1, 121.1, 2000, 0, true), point(31.2, 121.2, 3000, 1, true),
+        point(5, 6, 4000, 1, false));
+    Document d = parse(xml);
+    NodeList marks = d.getElementsByTagNameNS(Kml.NAMESPACE, "Placemark");
+    int endpoints = 0;
+    for (int i = 0; i < marks.getLength(); i++) {
+      Element mark = (Element) marks.item(i);
+      if (!mark.getAttribute("id").startsWith("track-")) continue;
+      endpoints++;
+      String expected = mark.getAttribute("id").equals("track-start") ? "起点" : "终点";
+      assertEquals(expected, mark.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
+      String coord = mark.getElementsByTagNameNS(Kml.NAMESPACE, "coordinates").item(0).getTextContent().trim();
+      assertEquals(expected.equals("起点") ? "121.00000000,31.00000000" : "121.20000000,31.20000000", coord);
+      assertEquals(1, mark.getElementsByTagNameNS(Kml.NAMESPACE, "IconStyle").getLength());
+      assertEquals(0, mark.getElementsByTagNameNS(Kml.NAMESPACE, "href").getLength());
+    }
+    assertEquals(2, endpoints);
+  }
+
+  @Test
+  public void oneValidPointHasCombinedEndpointAndEmptyHasNone() throws Exception {
+    String xml = export("one", point(31, 121, 0, 0, true));
+    assertTrue(xml.contains("id=\"track-start-end\""));
+    assertTrue(xml.contains("起点 / 终点"));
+    assertFalse(export("empty").contains("id=\"track-"));
   }
 
   @Test

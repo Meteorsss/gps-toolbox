@@ -354,6 +354,7 @@ public final class Screens {
     Ui u = a.u;
     LinearLayout b = a.body;
     u.section(b, "LEAVE A TRACE", "把走过的路留下");
+    button(a, b, "轨迹点间隔：" + Preferences.interval(a) + " 秒（点击选择）", a::selectRecordingInterval);
     TrackService t = TrackService.active;
     if (t != null) {
       LinearLayout live = u.panel();
@@ -367,7 +368,7 @@ public final class Screens {
       a.bind(d, () -> Geo.meters(t.distance));
       live.addView(d);
       u.gap(live, 8);
-      u.note(live, "缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");
+      u.note(live, "保存间隔 " + t.intervalSeconds() + " 秒。缺失、暂停、低精度或异常跳点会断开显示；模拟位置不计入有效轨迹。");
       button(a, live, "在地图上看实时轨迹", () -> a.openMap(t.trackId));
       TrackStatsPanel liveStats = new TrackStatsPanel(a, u, t.trackId);
       live.addView(liveStats);
@@ -632,11 +633,26 @@ public final class Screens {
             a.e.fresh() && a.e.location.hasSpeed()
                 ? f("%.1f", a.e.location.getSpeed() * 3.6)
                 : "—");
-    p.addView(speed);
+    speed.setTag("large-speed-current");
+    p.addView(speed, new LinearLayout.LayoutParams(-1, -2));
     TextView unit = u.text("km/h", 22, u.accent);
     unit.setGravity(Gravity.CENTER);
-    p.addView(unit);
-    u.gap(p, 30);
+    p.addView(unit, new LinearLayout.LayoutParams(-1, -2));
+    u.gap(p, 20);
+    TextView recording = u.text("", 15, u.accent);
+    recording.setTag("large-speed-recording-stats");
+    recording.setGravity(Gravity.CENTER);
+    a.bind(recording, () -> {
+      TrackService live = TrackService.active;
+      if (live == null) return "未开始记录\n最高速度  —    平均速度  —\n累计里程  —";
+      TrackAnalytics.Result stats = live.insights();
+      String max = Double.isFinite(stats.maxSpeed) ? f("%.1f km/h", stats.maxSpeed * 3.6) : "—";
+      String avg = Double.isFinite(stats.averageKmh()) ? f("%.1f km/h", stats.averageKmh()) : "—";
+      return (live.paused ? "本次记录 · 已暂停" : "本次记录 · 进行中")
+          + "\n最高速度  " + max + "\n平均速度  " + avg + "\n累计里程  " + Geo.meters(stats.distance);
+    });
+    p.addView(recording, new LinearLayout.LayoutParams(-1, -2));
+    u.gap(p, 20);
     TextView other = u.text("", 15, u.muted);
     other.setGravity(Gravity.CENTER);
     a.bind(
@@ -654,7 +670,7 @@ public final class Screens {
     keep.setOnCheckedChangeListener((v, on) -> a.keepAwake(on));
     p.addView(keep);
     a.body.addView(p);
-    u.note(a.body, "速度来自定位数据，静止或弱信号时可能抖动。请勿在驾驶时操作手机。离开这个页面后会取消常亮。");
+    u.note(a.body, "下方统计只属于当前正在录制的轨迹；平均速度=抗漂移里程÷记录时长（暂停不计），最高速度为连续3个可靠保存点的速度中值，数据不足显示—。保存间隔较长可能遗漏短时峰值或弯道里程。速度来自定位数据，请勿在驾驶时操作手机。离开页面取消常亮。");
   }
 
   private static void diagnostics(MainActivity a) {
@@ -711,7 +727,9 @@ public final class Screens {
   private static void settings(MainActivity a) {
     Ui u = a.u;
     u.section(a.body, "MAKE IT YOURS", "设置与关于");
-    button(a, a.body, u.light ? "切换到深色主题" : "切换到浅色主题", a::theme);
+    button(a, a.body, "色彩模式：" + Preferences.theme(a).label, a::selectTheme);
+    button(a, a.body, "轨迹点间隔：" + Preferences.interval(a) + " 秒", a::selectRecordingInterval);
+    u.note(a.body, "间隔控制保存新定位点，不是保证定位频率；仪表仍约每秒请求定位。大间隔省存储但可能漏弯道或速度峰值；调整间隔会开始新片段，不影响已保存点。CSV保留按所选间隔保存的原始点。");
     button(a, a.body, a.dms() ? "坐标显示：度分秒（点击切换）" : "坐标显示：十进制度（点击切换）", a::toggleDms);
     button(a, a.body, "定位与通知权限", a::appSettings);
     button(a, a.body, "在线地图隐私 / 撤回同意", a::mapPrivacy);

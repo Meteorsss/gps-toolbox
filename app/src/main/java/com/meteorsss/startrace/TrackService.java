@@ -17,12 +17,38 @@ public final class TrackService extends Service {
   private long accumulated, resumed, lastElapsed = -1;
   private int segment;
   private TrackPoint previous, anchor;
-  private boolean ending;
+  private boolean ending, unsavedBreak;
+  private final RecordingCadence cadence = new RecordingCadence();
+  private int intervalSeconds = 1;
   private final TrackAnalytics analytics = new TrackAnalytics();
 
   public TrackAnalytics.Result insights() {
     return analytics.finish(distance, duration());
   }
+
+  public int intervalSeconds() { return intervalSeconds; }
+
+  public void setIntervalSeconds(int seconds) {
+    int value = RecordingCadence.sanitize(seconds);
+    if (value == intervalSeconds) return;
+    intervalSeconds = value;
+    cadence.reset();
+    unsavedBreak = false;
+    if (trackId >= 0) {
+      segment++;
+      previous = null;
+      anchor = null;
+    }
+  }
+
+  void prepareForTests(App application, long id) {
+    app = application;
+    trackId = id;
+    accumulated = 60000; // Synthetic fixture has one minute of prior active recording.
+    resumed = SystemClock.elapsedRealtime();
+  }
+
+  void fixForTests(Location location) { onFix(location); }
 
   public long duration() {
     return accumulated + (!paused && resumed > 0 ? SystemClock.elapsedRealtime() - resumed : 0);
@@ -58,6 +84,7 @@ public final class TrackService extends Service {
       return START_NOT_STICKY;
     }
     try {
+      intervalSeconds = Preferences.interval(this);
       startForeground(11, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION);
       trackId =
           app.store.begin(
@@ -117,6 +144,16 @@ public final class TrackService extends Service {
         !location.isMock()
             && TrackFilter.usable(candidate, SystemClock.elapsedRealtime())
             && TrackFilter.plausible(previous, candidate);
+    if (!cadence.shouldSave(elapsed, intervalSeconds)) {
+      if (!good) unsavedBreak = true;
+      return;
+    }
+    if (unsavedBreak) {
+      segment++;
+      previous = null;
+      anchor = null;
+      unsavedBreak = false;
+    }
     if (good && previous != null && elapsed - previous.elapsed > 30000) {
       segment++;
       previous = null;
@@ -170,6 +207,8 @@ public final class TrackService extends Service {
     segment++;
     previous = null;
     anchor = null;
+    cadence.reset();
+    unsavedBreak = false;
     paused = false;
     resumed = SystemClock.elapsedRealtime();
     app.engine.setRecording(true);

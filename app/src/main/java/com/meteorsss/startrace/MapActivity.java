@@ -71,8 +71,7 @@ public final class MapActivity extends Activity {
   public void onCreate(Bundle state) {
     super.onCreate(state);
     app = (App) getApplication();
-    ui =
-        new Ui(this, getSharedPreferences("MainActivity", MODE_PRIVATE).getBoolean("light", false));
+    ui = new Ui(this, Preferences.light(this));
     requestedTrack = getIntent().getLongExtra("track_id", -1);
     displayTrack = requestedTrack;
     following = requestedTrack < 0;
@@ -729,6 +728,8 @@ public final class MapActivity extends Activity {
     out.putBoolean("fit_pending", fitPending);
     out.putLong("display_track", displayTrack);
   }
+
+  boolean lightForTests() { return ui.light; }
 
   double cameraZoomForTests() {
     return map == null ? 0 : map.getCameraPosition().zoom;

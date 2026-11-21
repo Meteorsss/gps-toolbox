@@ -82,13 +82,15 @@ public class KmlFeatureTest {
         assertEquals(
             "Synthetic KML & 中文 <test>",
             xml.getElementsByTagNameNS(Kml.NAMESPACE, "name").item(0).getTextContent());
-        assertEquals(3, xml.getElementsByTagNameNS(Kml.NAMESPACE, "Placemark").getLength());
+        assertEquals(5, xml.getElementsByTagNameNS(Kml.NAMESPACE, "Placemark").getLength());
         assertEquals(2, xml.getElementsByTagNameNS(Kml.NAMESPACE, "LineString").getLength());
-        assertEquals(1, xml.getElementsByTagNameNS(Kml.NAMESPACE, "Point").getLength());
+        assertEquals(3, xml.getElementsByTagNameNS(Kml.NAMESPACE, "Point").getLength());
         String text = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
         assertFalse(text.contains("139.00000000,39.00000000"));
         assertFalse(text.contains("50.000"));
         assertTrue(text.contains("121.00000000,31.00000000"));
+        assertTrue(text.contains("id=\"track-start\"><name>起点</name>"));
+        assertTrue(text.contains("id=\"track-end\"><name>终点</name>"));
         // Existing formats and persisted source measurements are unaffected.
         ByteArrayOutputStream csv = new ByteArrayOutputStream();
         app.store.export(id, csv, TrackExport.CSV);

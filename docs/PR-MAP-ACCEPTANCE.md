@@ -49,3 +49,10 @@
 - ARM64-only ELF64 AArch64 verification, existing release certificate continuity, versionCode=18 and APK SHA-256 verified.
 - APK SHA-256: `67dcb077ee2c5d845a42b52133e6639f78ecd0c4098b36625f0f5c7e1d2797ce`.
 - Owner requested another public Pre-release; PR remains unmerged and main unchanged.
+
+## 0.2.2-pr manual acceptance
+
+- Re-export KML and import in Earth: named start/end placemarks must match the first/last valid coordinates across gaps; a singleton has a combined marker; a closed loop may have overlapping start/end markers. Old exported files are not rewritten.
+- Set each 1/2/3/5/10/15-second interval before recording and change mid-recording. Check saved point timestamps, pause/resume, no fabricated points, no bridge across rejected callbacks, export count and persistent preference. Longer intervals may undersample bends/peaks.
+- Select DARK/LIGHT/SYSTEM, switch system appearance with main/map open, recreate and return from background. Manual modes stay fixed; system mode follows; recording service must not stop.
+- Large speed view keeps current value centered above live max/average/distance. Pause freezes recording duration, new recording resets statistics, and stop/no recording shows unknown instead of stale previous values.

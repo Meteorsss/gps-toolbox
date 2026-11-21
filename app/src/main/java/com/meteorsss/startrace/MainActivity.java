@@ -70,7 +70,7 @@ public final class MainActivity extends Activity {
   }
 
   public void buildRoot() {
-    boolean light = getPreferences(MODE_PRIVATE).getBoolean("light", false);
+    boolean light = Preferences.light(this);
     u = new Ui(this, light);
     getWindow().setDecorFitsSystemWindows(false);
     getWindow().setNavigationBarContrastEnforced(false);
@@ -208,7 +208,7 @@ public final class MainActivity extends Activity {
         }
       };
 
-  private void refresh() {
+  void refresh() {
     if (rendering || status == null) return;
     String state =
         !e.precise()
@@ -787,8 +787,34 @@ public final class MainActivity extends Activity {
   }
 
   public void theme() {
-    getPreferences(MODE_PRIVATE).edit().putBoolean("light", !u.light).apply();
+    Preferences.theme(this, u.light ? ThemeMode.DARK : ThemeMode.LIGHT);
     buildRoot();
+  }
+
+  public void selectTheme() {
+    ThemeMode[] modes = ThemeMode.values();
+    String[] labels = Arrays.stream(modes).map(m -> m.label).toArray(String[]::new);
+    new AlertDialog.Builder(this).setTitle("色彩模式")
+        .setSingleChoiceItems(labels, Preferences.theme(this).ordinal(), (dialog, which) -> {
+          Preferences.theme(this, modes[which]);
+          dialog.dismiss();
+          buildRoot();
+        }).setNegativeButton("取消", null).show();
+  }
+
+  public void selectRecordingInterval() {
+    String[] labels = Arrays.stream(RecordingCadence.SECONDS).mapToObj(i -> i + " 秒 / 点").toArray(String[]::new);
+    int selected = 0;
+    for (int i = 0; i < RecordingCadence.SECONDS.length; i++)
+      if (RecordingCadence.SECONDS[i] == Preferences.interval(this)) selected = i;
+    new AlertDialog.Builder(this).setTitle("轨迹点保存间隔")
+        .setSingleChoiceItems(labels, selected, (dialog, which) -> {
+          int seconds = RecordingCadence.SECONDS[which];
+          Preferences.interval(this, seconds);
+          if (TrackService.active != null) TrackService.active.setIntervalSeconds(seconds);
+          dialog.dismiss();
+          render();
+        }).setNegativeButton("取消", null).show();
   }
 
   public boolean dms() {

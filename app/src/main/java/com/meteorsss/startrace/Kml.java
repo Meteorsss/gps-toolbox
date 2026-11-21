@@ -32,7 +32,8 @@ public final class Kml {
 
   public static final class Exporter {
     private final Writer out;
-    private TrackPoint first, previous;
+    private TrackPoint first, previous, trackStart, trackEnd;
+    private long accepted;
     private boolean line, finished;
     private int sections;
 
@@ -61,6 +62,9 @@ public final class Kml {
               || Math.abs(p.lon - previous.lon) > 180
               || p.elapsed <= previous.elapsed
               || p.elapsed - previous.elapsed > 30000)) endSection();
+      if (trackStart == null) trackStart = p;
+      trackEnd = p;
+      accepted++;
       if (first == null) {
         first = p;
       } else {
@@ -96,9 +100,23 @@ public final class Kml {
       line = false;
     }
 
+    private void endpoint(String id, String name, String color, TrackPoint point) throws IOException {
+      out.write("<Placemark id=\"" + id + "\"><name>" + name
+          + "</name><description>有效轨迹的" + name + "；WGS84，贴地显示。</description>"
+          + "<Style><IconStyle><color>" + color + "</color><scale>1.2</scale></IconStyle>"
+          + "<LabelStyle><color>" + color + "</color><scale>1.1</scale></LabelStyle></Style>"
+          + "<Point><altitudeMode>clampToGround</altitudeMode><coordinates>"
+          + coordinate(point) + "</coordinates></Point></Placemark>\n");
+    }
+
     public void finish() throws IOException {
       if (finished) return;
       endSection();
+      if (accepted == 1) endpoint("track-start-end", "起点 / 终点", "ff35abf5", trackStart);
+      else if (accepted > 1) {
+        endpoint("track-start", "起点", "ff35abf5", trackStart);
+        endpoint("track-end", "终点", "ff755ceb", trackEnd);
+      }
       out.write("</Document></kml>\n");
       finished = true;
     }

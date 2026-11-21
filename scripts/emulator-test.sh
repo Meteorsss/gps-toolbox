@@ -8,5 +8,5 @@ adb shell am instrument -w -r com.meteorsss.startrace.test/androidx.test.runner.
 adb logcat -d > device-results/logcat.txt
 adb pull /sdcard/Android/data/com.meteorsss.startrace/files/screenshots device-results/ || true
 adb pull /sdcard/Android/data/com.meteorsss.startrace/files/export-fixtures device-results/ || true
-grep -q 'OK (15 tests)' device-results/instrumentation.txt
+grep -q 'OK (19 tests)' device-results/instrumentation.txt
 ! grep -q 'FAILURES!!!\|INSTRUMENTATION_FAILED\|Process crashed' device-results/instrumentation.txt
